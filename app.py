@@ -365,7 +365,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
+# Session state
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 if 'current_pdf' not in st.session_state:
@@ -375,6 +375,7 @@ if 'upload_status' not in st.session_state:
 if 'metrics' not in st.session_state:
     st.session_state.metrics = {'total_questions': 0, 'avg_latency': 0}
 
+# ─── Sidebar ────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<div class="wordmark"><div class="wordmark-dot"></div> ContextCore</div>', unsafe_allow_html=True)
     st.markdown('<div class="wordmark-tag">RAG Context Intelligence</div>', unsafe_allow_html=True)
@@ -434,7 +435,7 @@ with st.sidebar:
         st.session_state.chat_history = []
         st.rerun()
 
-
+# ─── Main ───────────────────────────────────────────────────────────────────
 left, right = st.columns([3, 1], gap="large")
 
 with left:
@@ -483,7 +484,14 @@ with left:
     # Close wrapper
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Input row
+    # Handle suggested prompt click
+    if 'pending_question' not in st.session_state:
+        st.session_state.pending_question = None
+
+    pending = st.session_state.pending_question
+    if pending:
+        st.session_state.pending_question = None  # clear before widget renders
+
     q_col, btn_col = st.columns([5, 1])
     with q_col:
         question = st.text_input(
@@ -491,18 +499,21 @@ with left:
             placeholder="Ask a question about your document...",
             label_visibility="collapsed",
             key="question_input",
+            value=pending or "",
             disabled=st.session_state.current_pdf is None
         )
     with btn_col:
         ask = st.button("Send →", type="primary", use_container_width=True,
                         disabled=st.session_state.current_pdf is None)
 
-    if ask and question:
-        st.session_state.chat_history.append({'role': 'user', 'content': question})
+    # Fire if Send clicked OR if a suggested prompt was just selected
+    active_question = pending if pending else question
+    if (ask and question) or pending:
+        st.session_state.chat_history.append({'role': 'user', 'content': active_question})
         with st.spinner("Analyzing..."):
             try:
                 t0 = time.time()
-                r = requests.post(f"{API_BASE_URL}/api/ask", json={"question": question})
+                r = requests.post(f"{API_BASE_URL}/api/ask", json={"question": active_question})
                 latency = int((time.time() - t0) * 1000)
                 if r.status_code == 200:
                     res = r.json()
@@ -567,7 +578,7 @@ with right:
     ]
     for q in samples:
         if st.button(q, use_container_width=True, key=f"s_{q}"):
-            st.session_state["question_input"] = q
+            st.session_state["pending_question"] = q
             st.rerun()
 
     st.markdown("""
