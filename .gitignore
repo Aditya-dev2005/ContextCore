@@ -1,20 +1,9 @@
-# Environment & secrets
 .env
-
-# Python cache
 __pycache__/
 *.pyc
 *.pyo
-
-# FAISS index
 faiss_index/
-
-# Virtual environment
 venv/
-
-# VS Code settings
 .vscode/
-
-# Uploads
 uploads/
 *.pdf
