@@ -33,6 +33,9 @@
 ### Multi-PDF Support
 ![Multiple PDFs](screenshots/multiple_pdf.png)
 
+### Querying Across Multiple Documents
+![Multi Document QA](screenshots/multi_documents_qa.png)
+
 ---
 
 ## What is ContextCore?
@@ -272,10 +275,6 @@ Generate Query Embedding
 ```
 
 ---
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
