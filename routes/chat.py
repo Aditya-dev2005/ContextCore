@@ -23,7 +23,10 @@ async def ask_question(request: QuestionRequest):
     
     try:
         # Load vector store
-        vectorstore = load_vectorstore()
+        from services.vector_store import get_vectorstore
+        vectorstore = get_vectorstore()
+        if vectorstore is None:
+            raise HTTPException(status_code=400, detail="No documents indexed yet")
         
         # Search for relevant documents
         docs = similarity_search(vectorstore, request.question, k=3)

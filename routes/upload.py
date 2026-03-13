@@ -28,8 +28,8 @@ async def upload_pdf(file: UploadFile = File(...)):
         
         # Create and save vector store
         metadata = {"source": file.filename}
-        vectorstore = create_vectorstore(chunks, metadata)
-        save_vectorstore(vectorstore)
+        from services.vector_store import add_to_vectorstore
+        add_to_vectorstore(chunks, file.filename)
         
         return UploadResponse(
             message="PDF processed successfully",
