@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from services.pdf_processor import extract_text_from_pdf, chunk_text
-from services.vector_store import create_vectorstore, save_vectorstore
+from services.vector_store import add_to_vectorstore
 from models.schemas import UploadResponse
 import tempfile
 import os

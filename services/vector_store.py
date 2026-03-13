@@ -1,35 +1,50 @@
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_core.documents import Document  # <- यह change किया
+from langchain_core.documents import Document
 from config import Config
 from typing import List, Optional
-import os
 
-# Initialize embeddings
-embeddings = OpenAIEmbeddings(
-    model=Config.EMBEDDING_MODEL,
-    api_key=Config.OPENROUTER_API_KEY,
-    base_url=Config.OPENROUTER_BASE_URL
-)
+# Lazy-loaded — NOT initialized at import time
+_embeddings: Optional[OpenAIEmbeddings] = None
+_vectorstore: Optional[FAISS] = None
 
-def create_vectorstore(chunks: List[str], metadata: Optional[dict] = None):
-    """Create FAISS vector store from text chunks"""
-    docs = [Document(page_content=chunk, metadata=metadata or {}) for chunk in chunks]
-    vectorstore = FAISS.from_documents(docs, embeddings)
-    return vectorstore
 
-def save_vectorstore(vectorstore, path: str = Config.FAISS_INDEX_PATH):
-    """Save vector store to disk"""
-    vectorstore.save_local(path)
+def get_embeddings() -> OpenAIEmbeddings:
+    """Initialize embeddings only when first needed, not at startup."""
+    global _embeddings
+    if _embeddings is None:
+        _embeddings = OpenAIEmbeddings(
+            model=Config.EMBEDDING_MODEL,
+            api_key=Config.OPENROUTER_API_KEY,
+            base_url=Config.OPENROUTER_BASE_URL
+        )
+    return _embeddings
 
-def load_vectorstore(path: str = Config.FAISS_INDEX_PATH):
-    """Load vector store from disk"""
-    return FAISS.load_local(
-        path,
-        embeddings,
-        allow_dangerous_deserialization=True
-    )
 
-def similarity_search(vectorstore, query: str, k: int = 3):
-    """Search for similar documents"""
-    return vectorstore.similarity_search(query, k=k)
+def add_to_vectorstore(chunks: List[str], filename: str):
+    """First upload creates index, subsequent uploads merge into it."""
+    global _vectorstore
+    docs = [
+        Document(page_content=chunk, metadata={"source": filename})
+        for chunk in chunks
+    ]
+    if _vectorstore is None:
+        _vectorstore = FAISS.from_documents(docs, get_embeddings())
+    else:
+        _vectorstore.add_documents(docs)
+    return _vectorstore
+
+
+def get_vectorstore() -> Optional[FAISS]:
+    return _vectorstore
+
+
+def clear_vectorstore():
+    global _vectorstore
+    _vectorstore = None
+
+
+def similarity_search(query: str, k: int = 4) -> list:
+    if _vectorstore is None:
+        return []
+    return _vectorstore.similarity_search(query, k=k)
