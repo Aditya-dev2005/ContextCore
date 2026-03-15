@@ -16,7 +16,7 @@
 
 ### Watch it in action
 
-[![ContextCore Demo](screenshots/home_page.png)](demo_video.mp4)
+[![ContextCore Demo](screenshots/home_page.png)](contextcore.demo.mp4)
 
 > 📹 Click the thumbnail above to watch the demo video.
 
@@ -35,6 +35,15 @@
 
 ### Querying Across Multiple Documents
 ![Multi Document QA](screenshots/multi_documents_qa.png)
+
+### Conversation Memory
+![Conversation Memory](screenshots/conversation_memory_demo.png)
+
+### Redis Cache Performance
+![Redis Cache Hit](screenshots/redis_cache_hit_demo.png)
+
+> ⚡ Same question asked twice — latency dropped from **6605ms → 4ms** (1650x faster) on Redis cache hit.
+
 
 ---
 
