@@ -4,7 +4,6 @@ from langchain_core.documents import Document
 from config import Config
 from typing import List, Optional
 
-# Lazy-loaded — NOT initialized at import time
 _embeddings: Optional[OpenAIEmbeddings] = None
 _vectorstore: Optional[FAISS] = None
 

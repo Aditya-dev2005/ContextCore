@@ -9,7 +9,6 @@ import hashlib
 
 router = APIRouter()
 
-# Initialize LLM
 llm = ChatOpenAI(
     model=Config.LLM_MODEL,
     temperature=Config.TEMPERATURE,
@@ -17,23 +16,52 @@ llm = ChatOpenAI(
     base_url=Config.OPENROUTER_BASE_URL
 )
 
-# Initialize cache service
 cache = CacheService()
 
-def generate_cache_key(question: str) -> str:
-    normalized = ' '.join(question.lower().split())
-    return f"rag:q:{hashlib.md5(normalized.encode()).hexdigest()}"
+def build_prompt(context: str, question: str, history: list) -> str:
+    history_text = ""
+    if history:
+        lines = []
+        for msg in history[-6:]:
+            role = "User" if msg.role == "user" else "Assistant"
+            lines.append(f"{role}: {msg.content}")
+        history_text = "\n".join(lines)
+
+    if history_text:
+        return f"""You are a helpful assistant answering questions about uploaded documents.
+Use the conversation history for context on follow-up questions.
+
+Conversation History:
+{history_text}
+
+Context from documents:
+{context}
+
+Current Question: {question}
+
+Answer the question using the document context. If the answer is not in the context, say: "Answer is not available in the context."
+
+Answer:"""
+    else:
+        return f"""Answer the question as detailed as possible from the provided context.
+If the answer is not in the context, just say: "Answer is not available in the context."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:"""
 
 @router.post("/ask", response_model=QuestionResponse)
 async def ask_question(request: QuestionRequest):
-    """Ask a question about uploaded PDFs with Redis caching"""
-
     start_time = time.time()
 
     try:
-        # 1. Check cache first
+        # 1. Always check cache by question text only
+        #    Same question = cache hit, regardless of history
         cached_response = cache.get_cached_response(request.question)
-
         if cached_response:
             print("⚡ Redis CACHE HIT!")
             latency_ms = (time.time() - start_time) * 1000
@@ -63,21 +91,12 @@ async def ask_question(request: QuestionRequest):
             context = "\n\n".join([doc.page_content for doc in docs])
             sources = list(set([doc.metadata.get("source", "unknown") for doc in docs]))
 
-            prompt = f"""Answer the question as detailed as possible from the provided context.
-If the answer is not in the context, just say: "Answer is not available in the context."
-
-Context:
-{context}
-
-Question:
-{request.question}
-
-Answer:"""
-
+            # 4. Build prompt with conversation history
+            prompt = build_prompt(context, request.question, request.conversation_history or [])
             response = llm.invoke(prompt)
             answer = response.content
 
-        # 4. Cache the response
+        # 5. Cache the response
         cache.cache_response(request.question, {"answer": answer, "sources": sources})
 
         latency_ms = (time.time() - start_time) * 1000

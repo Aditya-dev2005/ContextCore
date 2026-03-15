@@ -182,7 +182,6 @@ st.markdown("""
     }
     .doc-card b { color: var(--text); font-weight: 500; }
 
-    /* ── Multi-PDF document list ── */
     .pdf-list {
         display: flex;
         flex-direction: column;
@@ -324,11 +323,11 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Session state ────────────────────────────────────────────────────────────
+# ── Session state ─────────────────────────────────────────────────────────────
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 if 'uploaded_pdfs' not in st.session_state:
-    st.session_state.uploaded_pdfs = []   # list of {filename, chunks}
+    st.session_state.uploaded_pdfs = []
 if 'upload_error' not in st.session_state:
     st.session_state.upload_error = None
 if 'metrics' not in st.session_state:
@@ -336,12 +335,11 @@ if 'metrics' not in st.session_state:
 if 'pending_question' not in st.session_state:
     st.session_state.pending_question = None
 
-# ── Sidebar ──────────────────────────────────────────────────────────────────
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<div class="wordmark"><div class="wordmark-dot"></div> ContextCore</div>', unsafe_allow_html=True)
     st.markdown('<div class="wordmark-tag">RAG Document Intelligence</div>', unsafe_allow_html=True)
 
-    # API health
     try:
         health = requests.get(f"{API_BASE_URL}/health", timeout=2)
         if health.status_code == 200 and health.json().get('status') == 'healthy':
@@ -354,7 +352,6 @@ with st.sidebar:
     st.divider()
     st.markdown('<div class="section-label">Documents</div>', unsafe_allow_html=True)
 
-    # ── Multi-file uploader ──────────────────────────────────────────────────
     uploaded_files = st.file_uploader(
         "Upload PDFs",
         type=['pdf'],
@@ -366,7 +363,6 @@ with st.sidebar:
     if uploaded_files:
         if st.button("Process Documents", type="primary", use_container_width=True):
             st.session_state.upload_error = None
-            new_names = [f.name for f in uploaded_files]
             already = [p['filename'] for p in st.session_state.uploaded_pdfs]
             to_upload = [f for f in uploaded_files if f.name not in already]
 
@@ -396,14 +392,12 @@ with st.sidebar:
                 time.sleep(0.5)
             st.rerun()
 
-    # Error display
     if st.session_state.upload_error:
         st.markdown(
             f'<div class="doc-card" style="border-left-color:var(--accent2)">{st.session_state.upload_error}</div>',
             unsafe_allow_html=True
         )
 
-    # Indexed PDF list
     if st.session_state.uploaded_pdfs:
         total_chunks = sum(p['chunks'] for p in st.session_state.uploaded_pdfs)
         n = len(st.session_state.uploaded_pdfs)
@@ -445,16 +439,14 @@ with st.sidebar:
         if st.button("Clear docs", use_container_width=True):
             st.session_state.uploaded_pdfs = []
             st.session_state.upload_error = None
-            # Tell backend to clear vector store
             try:
                 requests.post(f"{API_BASE_URL}/api/clear", timeout=3)
             except:
                 pass
             st.rerun()
 
-# ── Main ─────────────────────────────────────────────────────────────────────
+# ── Main ──────────────────────────────────────────────────────────────────────
 left, right = st.columns([3, 1], gap="large")
-
 docs_ready = len(st.session_state.uploaded_pdfs) > 0
 
 with left:
@@ -465,7 +457,6 @@ with left:
     </div>
     """, unsafe_allow_html=True)
 
-    # Chat window
     st.markdown('<div class="chat-wrap">', unsafe_allow_html=True)
 
     if not st.session_state.chat_history:
@@ -501,7 +492,7 @@ with left:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Input
+    # ── Input ─────────────────────────────────────────────────────────────────
     pending = st.session_state.pending_question
     if pending:
         st.session_state.pending_question = None
@@ -520,13 +511,27 @@ with left:
         ask = st.button("Send →", type="primary", use_container_width=True, disabled=not docs_ready)
 
     active_question = pending if pending else question
+
     if (ask and question) or pending:
         st.session_state.chat_history.append({'role': 'user', 'content': active_question})
+
         with st.spinner("Analyzing across documents..."):
             try:
                 t0 = time.time()
-                r = requests.post(f"{API_BASE_URL}/api/ask", json={"question": active_question})
+
+                # Build conversation history — all messages except the one just added
+                history = [
+                    {"role": msg["role"], "content": msg["content"]}
+                    for msg in st.session_state.chat_history[:-1]
+                ]
+
+                r = requests.post(f"{API_BASE_URL}/api/ask", json={
+                    "question": active_question,
+                    "conversation_history": history
+                })
+
                 latency = int((time.time() - t0) * 1000)
+
                 if r.status_code == 200:
                     res = r.json()
                     st.session_state.chat_history.append({
