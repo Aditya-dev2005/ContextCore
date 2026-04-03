@@ -1,0 +1,134 @@
+{
+  "b967cf54": {
+    "id": "b967cf54",
+    "title": "what is the duration of internship",
+    "timestamp": "03 Apr 2026, 10:51 PM",
+    "messages": [
+      {
+        "role": "user",
+        "content": "what is the duration of internship"
+      },
+      {
+        "role": "assistant",
+        "content": "According to the Internship Confirmation Letter, the internship period is from May 28, 2026, to July 28, 2026.",
+        "latency": 2161,
+        "sources": "Aditya Chaturvedi Offer letter.pdf"
+      }
+    ],
+    "pdfs": [
+      "Aditya Chaturvedi Offer letter.pdf"
+    ]
+  },
+  "10e6ce31": {
+    "id": "10e6ce31",
+    "title": "what is the duration of internship",
+    "timestamp": "03 Apr 2026, 10:51 PM",
+    "messages": [
+      {
+        "role": "user",
+        "content": "what is the duration of internship"
+      },
+      {
+        "role": "assistant",
+        "content": "According to the Internship Confirmation Letter, the internship period is from May 28, 2026, to July 28, 2026.",
+        "latency": 2161,
+        "sources": "Aditya Chaturvedi Offer letter.pdf"
+      },
+      {
+        "role": "user",
+        "content": "what is the account number of aditya"
+      },
+      {
+        "role": "assistant",
+        "content": "According to the document context, the account number of Aditya Chaturvedi is 20780110101532.",
+        "latency": 2019,
+        "sources": "Aditya Chaturvedi Offer letter.pdf, Aditya _Chatur"
+      }
+    ],
+    "pdfs": [
+      "Aditya Chaturvedi Offer letter.pdf",
+      "Aditya _Chaturvedi_Bank_Account_details.pdf"
+    ]
+  },
+  "359bf3c6": {
+    "id": "359bf3c6",
+    "title": "what is the duration of internship",
+    "timestamp": "03 Apr 2026, 10:59 PM",
+    "messages": [
+      {
+        "role": "user",
+        "content": "what is the duration of internship"
+      },
+      {
+        "role": "assistant",
+        "content": "According to the Internship Confirmation Letter, the internship period is from May 28, 2026, to July 28, 2026.",
+        "latency": 2161,
+        "sources": "Aditya Chaturvedi Offer letter.pdf"
+      },
+      {
+        "role": "user",
+        "content": "what is the account number of aditya"
+      },
+      {
+        "role": "assistant",
+        "content": "According to the document context, the account number of Aditya Chaturvedi is 20780110101532.",
+        "latency": 2019,
+        "sources": "Aditya Chaturvedi Offer letter.pdf, Aditya _Chatur"
+      },
+      {
+        "role": "user",
+        "content": "what is the account number of aditya"
+      },
+      {
+        "role": "assistant",
+        "content": "According to the document context, the account number of Aditya Chaturvedi is 20780110101532.",
+        "latency": 10,
+        "sources": "Aditya Chaturvedi Offer letter.pdf, Aditya _Chatur"
+      },
+      {
+        "role": "user",
+        "content": "should aditya chaturvedi accept the offer of bricks and pixels internship or not?"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on the Internship Confirmation Letter and Terms and Conditions, I would say that Aditya Chaturvedi should accept the offer of Bricks and Pixels internship. The letter highlights the benefits of the internship, including hands-on experience, collaboration with a passionate team, and the opportunity to contribute meaningfully to creative initiatives. Additionally, the terms and conditions outline the expectations and responsibilities of the internship, including reporting to Mr. Akshay Kumar, adhering to company policies, and maintaining confidentiality.\n\nHowever, it's essential for Aditya to carefully review the terms and conditions, including the clauses on termination, non-disclosure, and data security, to ensure that he understands the commitments involved. If he is comfortable with the terms, accepting the offer could be a great opportunity for him to gain valuable experience and skills in the field of development.",
+        "latency": 5367,
+        "sources": "Aditya Chaturvedi Offer letter.pdf"
+      },
+      {
+        "role": "user",
+        "content": "but aditya thinks that the stipend is quit low "
+      },
+      {
+        "role": "assistant",
+        "content": "Based on the Internship Confirmation Letter and Terms and Conditions, the stipend for Aditya Chaturvedi is ₹15,000 per month, subject to a 10% TDS deduction as per statutory requirements. While Aditya may think that the stipend is low, it is essential to consider the terms and conditions of the internship, including the benefits and opportunities provided, such as hands-on experience, collaboration with a passionate team, and the chance to contribute meaningfully to creative initiatives.\n\nIt's also important to note that the stipend is mentioned in the Terms and Conditions, and Aditya has accepted the offer by confirming his internship. If Aditya has concerns about the stipend, he may want to discuss them with his reporting manager, Mr. Akshay Kumar, or the Head of Operations, Kaushambi Shaker, to understand the company's perspective and potential adjustments that can be made.",
+        "latency": 3910,
+        "sources": "Aditya Chaturvedi Offer letter.pdf"
+      },
+      {
+        "role": "user",
+        "content": "should aditya negotiate or is it good?"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on the Internship Confirmation Letter and Terms and Conditions, it seems that Aditya has already accepted the offer by confirming his internship. The letter mentions that \"This is a fantastic opportunity to kickstart your journey in the field of Development. We are committed to providing you with hands-on experience that will help you sharpen your editing skills and grow as a creative professional.\"\n\nHowever, considering Aditya's concern about the stipend being low, it might be a good idea for him to discuss this with his reporting manager, Mr. Akshay Kumar, or the Head of Operations, Kaushambi Shaker, to understand the company's perspective and potential adjustments that can be made.\n\nTherefore, negotiating the stipend or other terms of the internship might be a good approach for Aditya to consider.",
+        "latency": 2849,
+        "sources": "Aditya Chaturvedi Offer letter.pdf, Aditya _Chatur"
+      },
+      {
+        "role": "user",
+        "content": "what do you suggest?"
+      },
+      {
+        "role": "assistant",
+        "content": "Based on the Internship Confirmation Letter and Terms and Conditions, I would suggest that Aditya negotiate the stipend or other terms of the internship. The letter mentions that the company holds no obligation to extend or convert the internship into a full-time position, and the stipend of ₹15,000 per month, subject to a 10% TDS deduction, may be considered low by Aditya.\n\nAdditionally, the Terms and Conditions outline various expectations and responsibilities, including maintaining confidentiality, adhering to company policies, and complying with workplace rules. However, there is no mention of any flexibility in the stipend or other terms of the internship.\n\nConsidering Aditya's concern about the stipend being low, it would be a good idea for him to discuss this with his reporting manager, Mr. Akshay Kumar, or the Head of Operations, Kaushambi Shaker, to understand the company's perspective and potential adjustments that can be made.",
+        "latency": 5719,
+        "sources": "Aditya Chaturvedi Offer letter.pdf"
+      }
+    ],
+    "pdfs": [
+      "Aditya Chaturvedi Offer letter.pdf",
+      "Aditya _Chaturvedi_Bank_Account_details.pdf"
+    ]
+  }
+}

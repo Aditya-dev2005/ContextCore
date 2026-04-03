@@ -3,8 +3,13 @@ import requests
 import time
 import html
 import os
+import json
+import sys
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")
+sys.path.insert(0, os.path.dirname(__file__))
+from services.history_service import save_session, load_all_sessions, load_session, delete_session
+
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 st.set_page_config(
     page_title="ContextCore — RAG Document Intelligence",
@@ -156,7 +161,6 @@ st.markdown("""
         box-shadow: 0 0 0 3px rgba(108,99,255,0.15) !important;
     }
     .stTextInput > div > div > input::placeholder { color: var(--text-faint) !important; }
-    .stTextInput > div > div > input::placeholder { color: var(--text-faint) !important; }
     .stTextInput > label { color: var(--text-dim) !important; font-size: 0.8rem !important; }
 
     hr { border-color: var(--border) !important; margin: 1.2rem 0 !important; }
@@ -307,7 +311,6 @@ st.markdown("""
         margin-top: 0.35rem; display: flex; gap: 0.8rem;
     }
 
-    /* Streaming cursor blink */
     .streaming-cursor::after {
         content: '▋';
         animation: blink 0.7s infinite;
@@ -317,6 +320,30 @@ st.markdown("""
     @keyframes blink {
         0%, 100% { opacity: 1; }
         50% { opacity: 0; }
+    }
+
+    /* History cards */
+    .hist-card {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.6rem 0.8rem;
+        margin-bottom: 0.4rem;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+    .hist-card:hover { border-color: var(--accent); }
+    .hist-title {
+        font-size: 0.78rem;
+        color: var(--text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-bottom: 0.2rem;
+    }
+    .hist-meta {
+        font-size: 0.65rem;
+        color: var(--text-faint);
     }
 
     .stats-grid {
@@ -469,13 +496,48 @@ with st.sidebar:
                 pass
             st.rerun()
 
+    # ── NEW: Save & History section ───────────────────────────────────────────
+    st.divider()
+    st.markdown('<div class="section-label">History</div>', unsafe_allow_html=True)
+
+    if st.session_state.chat_history:
+        if st.button("💾 Save Session", use_container_width=True):
+            sid = save_session(st.session_state.chat_history, st.session_state.uploaded_pdfs)
+            st.success(f"Saved! ID: {sid}")
+
+    sessions = load_all_sessions()
+    if not sessions:
+        st.markdown('<div style="font-size:0.75rem; color:var(--text-faint); padding: 0.5rem 0;">No saved sessions yet.</div>', unsafe_allow_html=True)
+    else:
+        for s in sessions[:8]:  # Show last 8
+            safe_title = html.escape(s["title"])
+            pdfs_str = ", ".join(s.get("pdfs", []))[:40] or "No PDFs"
+            msg_count = len([m for m in s["messages"] if m["role"] == "user"])
+
+            col_load, col_del = st.columns([4, 1])
+            with col_load:
+                st.markdown(f"""
+                <div class="hist-card">
+                    <div class="hist-title">💬 {safe_title}</div>
+                    <div class="hist-meta">{s['timestamp']} · {msg_count}Q · {html.escape(pdfs_str)}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("Load", key=f"load_{s['id']}", use_container_width=True):
+                    loaded = load_session(s["id"])
+                    if loaded:
+                        st.session_state.chat_history = loaded["messages"]
+                        st.session_state.uploaded_pdfs = [
+                            {"filename": f, "chunks": 0} for f in loaded.get("pdfs", [])
+                        ]
+                        st.rerun()
+            with col_del:
+                if st.button("🗑", key=f"del_{s['id']}"):
+                    delete_session(s["id"])
+                    st.rerun()
+
 # ── Helper: streaming request ─────────────────────────────────────────────────
 def stream_response(question: str, history: list):
-    """Generator — yields tokens from /api/stream SSE endpoint"""
-    payload = {
-        "question": question,
-        "conversation_history": history
-    }
+    payload = {"question": question, "conversation_history": history}
     with requests.post(
         f"{API_BASE_URL}/api/stream",
         json=payload,
@@ -489,10 +551,7 @@ def stream_response(question: str, history: list):
                     data = json.loads(decoded[6:])
                     yield data
 
-
 # ── Main ──────────────────────────────────────────────────────────────────────
-import json
-
 left, right = st.columns([3, 1], gap="large")
 docs_ready = len(st.session_state.uploaded_pdfs) > 0
 
@@ -561,19 +620,10 @@ with left:
     if (ask and question) or pending:
         st.session_state.chat_history.append({'role': 'user', 'content': active_question})
 
-        # ── STREAMING response ────────────────────────────────────────────────
         history = [
             {"role": msg["role"], "content": msg["content"]}
             for msg in st.session_state.chat_history[:-1]
         ]
-
-        # Live streaming bubble
-        st.markdown("""
-        <div class="msg-row-ai" id="stream-row">
-            <div class="msg-avatar">◈</div>
-            <div id="stream-bubble-wrap"></div>
-        </div>
-        """, unsafe_allow_html=True)
 
         stream_placeholder = st.empty()
         t0 = time.time()
@@ -599,13 +649,11 @@ with left:
                 if chunk.get("done"):
                     sources = chunk.get("sources", [])
                     break
-
         except Exception as e:
             st.error(str(e))
 
         latency = int((time.time() - t0) * 1000)
 
-        # Save to history
         st.session_state.chat_history.append({
             'role': 'assistant',
             'content': full_answer,
@@ -613,7 +661,6 @@ with left:
             'sources': ', '.join(sources)[:50] if sources else ''
         })
 
-        # Update metrics
         n = st.session_state.metrics['total_questions']
         st.session_state.metrics['avg_latency'] = (
             st.session_state.metrics['avg_latency'] * n + latency
