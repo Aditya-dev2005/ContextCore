@@ -38,7 +38,13 @@ st.markdown("""
         color: var(--text) !important;
     }
     .stApp { background: var(--bg) !important; }
-    #MainMenu, footer, header, .stDeployButton { display: none !important; }
+
+    /* FIXED: sidebar toggle button ko hide mat karo */
+    #MainMenu, footer, .stDeployButton { display: none !important; }
+    header {
+    background: transparent !important;
+    }
+
     .block-container { padding: 2rem 2.5rem !important; max-width: 100% !important; }
 
     [data-testid="stSidebar"] {
@@ -46,6 +52,16 @@ st.markdown("""
         border-right: 1px solid var(--border) !important;
     }
     [data-testid="stSidebar"] > div { padding: 1.5rem 1.2rem; }
+
+    /* Sidebar toggle button — visible rakho */
+    [data-testid="collapsedControl"] {
+        background: var(--surface) !important;
+        border: 1px solid var(--border) !important;
+        color: var(--text) !important;
+    }
+    [data-testid="stSidebarCollapseButton"] {
+        color: var(--text-dim) !important;
+    }
 
     .wordmark {
         font-family: 'Syne', sans-serif;
@@ -492,7 +508,6 @@ with left:
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Input ─────────────────────────────────────────────────────────────────
     pending = st.session_state.pending_question
     if pending:
         st.session_state.pending_question = None
@@ -518,20 +533,15 @@ with left:
         with st.spinner("Analyzing across documents..."):
             try:
                 t0 = time.time()
-
-                # Build conversation history — all messages except the one just added
                 history = [
                     {"role": msg["role"], "content": msg["content"]}
                     for msg in st.session_state.chat_history[:-1]
                 ]
-
                 r = requests.post(f"{API_BASE_URL}/api/ask", json={
                     "question": active_question,
                     "conversation_history": history
                 })
-
                 latency = int((time.time() - t0) * 1000)
-
                 if r.status_code == 200:
                     res = r.json()
                     st.session_state.chat_history.append({
