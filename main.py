@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.upload import router as upload_router
 from routes.chat import router as chat_router
+from routes.stream import router as stream_router  # NEW
 import uvicorn
 
 # Create FastAPI app
@@ -14,7 +15,7 @@ app = FastAPI(
 # Configure CORS for Flutter frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,6 +24,7 @@ app.add_middleware(
 # Include routers
 app.include_router(upload_router, prefix="/api", tags=["upload"])
 app.include_router(chat_router, prefix="/api", tags=["chat"])
+app.include_router(stream_router, prefix="/api", tags=["stream"])  # NEW
 
 @app.get("/")
 async def root():

@@ -4,7 +4,7 @@ import time
 import html
 import os
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8001")
 
 st.set_page_config(
     page_title="ContextCore — RAG Document Intelligence",
@@ -39,11 +39,8 @@ st.markdown("""
     }
     .stApp { background: var(--bg) !important; }
 
-    /* FIXED: sidebar toggle button ko hide mat karo */
     #MainMenu, footer, .stDeployButton { display: none !important; }
-    header {
-    background: transparent !important;
-    }
+    header { background: transparent !important; }
 
     .block-container { padding: 2rem 2.5rem !important; max-width: 100% !important; }
 
@@ -53,15 +50,12 @@ st.markdown("""
     }
     [data-testid="stSidebar"] > div { padding: 1.5rem 1.2rem; }
 
-    /* Sidebar toggle button — visible rakho */
     [data-testid="collapsedControl"] {
         background: var(--surface) !important;
         border: 1px solid var(--border) !important;
         color: var(--text) !important;
     }
-    [data-testid="stSidebarCollapseButton"] {
-        color: var(--text-dim) !important;
-    }
+    [data-testid="stSidebarCollapseButton"] { color: var(--text-dim) !important; }
 
     .wordmark {
         font-family: 'Syne', sans-serif;
@@ -161,6 +155,7 @@ st.markdown("""
         border-color: var(--accent) !important;
         box-shadow: 0 0 0 3px rgba(108,99,255,0.15) !important;
     }
+    .stTextInput > div > div > input::placeholder { color: var(--text-faint) !important; }
     .stTextInput > div > div > input::placeholder { color: var(--text-faint) !important; }
     .stTextInput > label { color: var(--text-dim) !important; font-size: 0.8rem !important; }
 
@@ -305,10 +300,23 @@ st.markdown("""
         border-radius: 4px 18px 18px 18px;
         padding: 0.85rem 1.1rem; max-width: 72%;
         font-size: 0.875rem; line-height: 1.6;
+        white-space: pre-wrap;
     }
     .msg-meta {
         font-size: 0.68rem; color: var(--text-faint);
         margin-top: 0.35rem; display: flex; gap: 0.8rem;
+    }
+
+    /* Streaming cursor blink */
+    .streaming-cursor::after {
+        content: '▋';
+        animation: blink 0.7s infinite;
+        color: var(--accent);
+        margin-left: 2px;
+    }
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
     }
 
     .stats-grid {
@@ -461,7 +469,30 @@ with st.sidebar:
                 pass
             st.rerun()
 
+# ── Helper: streaming request ─────────────────────────────────────────────────
+def stream_response(question: str, history: list):
+    """Generator — yields tokens from /api/stream SSE endpoint"""
+    payload = {
+        "question": question,
+        "conversation_history": history
+    }
+    with requests.post(
+        f"{API_BASE_URL}/api/stream",
+        json=payload,
+        stream=True,
+        timeout=60
+    ) as resp:
+        for line in resp.iter_lines():
+            if line:
+                decoded = line.decode("utf-8")
+                if decoded.startswith("data: "):
+                    data = json.loads(decoded[6:])
+                    yield data
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
+import json
+
 left, right = st.columns([3, 1], gap="large")
 docs_ready = len(st.session_state.uploaded_pdfs) > 0
 
@@ -530,35 +561,65 @@ with left:
     if (ask and question) or pending:
         st.session_state.chat_history.append({'role': 'user', 'content': active_question})
 
-        with st.spinner("Analyzing across documents..."):
-            try:
-                t0 = time.time()
-                history = [
-                    {"role": msg["role"], "content": msg["content"]}
-                    for msg in st.session_state.chat_history[:-1]
-                ]
-                r = requests.post(f"{API_BASE_URL}/api/ask", json={
-                    "question": active_question,
-                    "conversation_history": history
-                })
-                latency = int((time.time() - t0) * 1000)
-                if r.status_code == 200:
-                    res = r.json()
-                    st.session_state.chat_history.append({
-                        'role': 'assistant',
-                        'content': res['answer'],
-                        'latency': latency,
-                        'sources': ', '.join(res.get('sources', ['doc']))[:50]
-                    })
-                    n = st.session_state.metrics['total_questions']
-                    st.session_state.metrics['avg_latency'] = (
-                        st.session_state.metrics['avg_latency'] * n + latency
-                    ) / (n + 1)
-                    st.session_state.metrics['total_questions'] += 1
-                else:
-                    st.error(r.text)
-            except Exception as e:
-                st.error(str(e))
+        # ── STREAMING response ────────────────────────────────────────────────
+        history = [
+            {"role": msg["role"], "content": msg["content"]}
+            for msg in st.session_state.chat_history[:-1]
+        ]
+
+        # Live streaming bubble
+        st.markdown("""
+        <div class="msg-row-ai" id="stream-row">
+            <div class="msg-avatar">◈</div>
+            <div id="stream-bubble-wrap"></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        stream_placeholder = st.empty()
+        t0 = time.time()
+        full_answer = ""
+        sources = []
+
+        try:
+            for chunk in stream_response(active_question, history):
+                if "error" in chunk:
+                    st.error(chunk["error"])
+                    break
+                if "token" in chunk:
+                    full_answer += chunk["token"]
+                    safe_so_far = html.escape(full_answer)
+                    stream_placeholder.markdown(f"""
+                    <div class="msg-row-ai">
+                        <div class="msg-avatar">◈</div>
+                        <div>
+                            <div class="bubble-ai streaming-cursor">{safe_so_far}</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                if chunk.get("done"):
+                    sources = chunk.get("sources", [])
+                    break
+
+        except Exception as e:
+            st.error(str(e))
+
+        latency = int((time.time() - t0) * 1000)
+
+        # Save to history
+        st.session_state.chat_history.append({
+            'role': 'assistant',
+            'content': full_answer,
+            'latency': latency,
+            'sources': ', '.join(sources)[:50] if sources else ''
+        })
+
+        # Update metrics
+        n = st.session_state.metrics['total_questions']
+        st.session_state.metrics['avg_latency'] = (
+            st.session_state.metrics['avg_latency'] * n + latency
+        ) / (n + 1)
+        st.session_state.metrics['total_questions'] += 1
+
         st.rerun()
 
 # ── Right panel ───────────────────────────────────────────────────────────────
