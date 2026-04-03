@@ -7,11 +7,13 @@ from config import Config
 class CacheService:
     def __init__(self):
         self.client = redis.Redis(
-            host=Config.REDIS_HOST,
-            port=Config.REDIS_PORT,
-            db=Config.REDIS_DB,
-            decode_responses=True
-        )
+        host=Config.REDIS_HOST,
+        port=Config.REDIS_PORT,
+        password=Config.REDIS_PASSWORD,
+        db=Config.REDIS_DB,
+        decode_responses=True,
+        ssl=True  # Upstash requires SSL
+    )
         self.ttl = Config.REDIS_TTL
     
     def _generate_key(self, question: str) -> str:
