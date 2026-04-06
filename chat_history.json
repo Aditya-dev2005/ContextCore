@@ -130,5 +130,75 @@
       "Aditya Chaturvedi Offer letter.pdf",
       "Aditya _Chaturvedi_Bank_Account_details.pdf"
     ]
+  },
+  "c4effa07": {
+    "id": "c4effa07",
+    "title": "what is the duration of this internship",
+    "timestamp": "06 Apr 2026, 09:40 PM",
+    "messages": [
+      {
+        "role": "user",
+        "content": "what is the duration of this internship"
+      },
+      {
+        "role": "assistant",
+        "content": "According to the internship details provided, the internship period is from May 28, 2026, to July 9, 2026.",
+        "latency": 1563,
+        "sources": "Aditya Chaturvedi Developer Intern.docx.pdf"
+      },
+      {
+        "role": "user",
+        "content": "what is the duration of this internship"
+      },
+      {
+        "role": "assistant",
+        "content": "According to the internship details provided, the internship period is from May 28, 2026, to July 9, 2026.",
+        "latency": 11,
+        "sources": "Aditya Chaturvedi Developer Intern.docx.pdf"
+      },
+      {
+        "role": "user",
+        "content": "should aditya take this internship?"
+      },
+      {
+        "role": "assistant",
+        "content": "I'm happy to help! However, I must clarify that I'm a helpful assistant answering questions about uploaded documents, not a career counselor. I can provide information about the internship, but I cannot advise Aditya on whether he should take it or not.\n\nThat being said, based on the internship details provided, here are some points to consider:\n\n* The internship period is from May 28, 2026, to July 9, 2026, which is a relatively short duration.\n* The stipend is ₹7,000 per month, subject to a 10% TDS deduction.\n* The internship is for a fixed duration and does not constitute an offer of permanent employment.\n* The company holds no obligation to extend or convert the internship into a full-time position.\n* The company expects the intern to maintain professionalism, punctuality, and confidentiality during the internship.\n\nIt's essential for Aditya to carefully review the terms and conditions, weigh the pros and cons, and consider his goals, priorities, and expectations before making a decision. Ultimately, the decision to take the internship is Aditya's to make.",
+        "latency": 7403,
+        "sources": "Aditya Chaturvedi Developer Intern.docx.pdf"
+      },
+      {
+        "role": "user",
+        "content": "should aditya take this internship?"
+      },
+      {
+        "role": "assistant",
+        "content": "I'm happy to help! However, I must clarify that I'm a helpful assistant answering questions about uploaded documents, not a career counselor. I can provide information about the internship, but I cannot advise Aditya on whether he should take it or not.\n\nThat being said, based on the internship details provided, here are some points to consider:\n\n* The internship period is from May 28, 2026, to July 9, 2026, which is a relatively short duration.\n* The stipend is ₹7,000 per month, subject to a 10% TDS deduction.\n* The internship is for a fixed duration and does not constitute an offer of permanent employment.\n* The company holds no obligation to extend or convert the internship into a full-time position.\n* The company expects the intern to maintain professionalism, punctuality, and confidentiality during the internship.\n\nIt's essential for Aditya to carefully review the terms and conditions, weigh the pros and cons, and consider his goals, priorities, and expectations before making a decision. Ultimately, the decision to take the internship is Aditya's to make.",
+        "latency": 105,
+        "sources": "Aditya Chaturvedi Developer Intern.docx.pdf"
+      },
+      {
+        "role": "user",
+        "content": "should aditya take this internship?"
+      },
+      {
+        "role": "assistant",
+        "content": "I'm happy to help! However, I must clarify that I'm a helpful assistant answering questions about uploaded documents, not a career counselor. I can provide information about the internship, but I cannot advise Aditya on whether he should take it or not.\n\nThat being said, based on the internship details provided, here are some points to consider:\n\n* The internship period is from May 28, 2026, to July 9, 2026, which is a relatively short duration.\n* The stipend is ₹7,000 per month, subject to a 10% TDS deduction.\n* The internship is for a fixed duration and does not constitute an offer of permanent employment.\n* The company holds no obligation to extend or convert the internship into a full-time position.\n* The company expects the intern to maintain professionalism, punctuality, and confidentiality during the internship.\n\nIt's essential for Aditya to carefully review the terms and conditions, weigh the pros and cons, and consider his goals, priorities, and expectations before making a decision. Ultimately, the decision to take the internship is Aditya's to make.",
+        "latency": 90,
+        "sources": "Aditya Chaturvedi Developer Intern.docx.pdf"
+      },
+      {
+        "role": "user",
+        "content": "should aditya take this internship?"
+      },
+      {
+        "role": "assistant",
+        "content": "I'm happy to help! However, I must clarify that I'm a helpful assistant answering questions about uploaded documents, not a career counselor. I can provide information about the internship, but I cannot advise Aditya on whether he should take it or not.\n\nThat being said, based on the internship details provided, here are some points to consider:\n\n* The internship period is from May 28, 2026, to July 9, 2026, which is a relatively short duration.\n* The stipend is ₹7,000 per month, subject to a 10% TDS deduction.\n* The internship is for a fixed duration and does not constitute an offer of permanent employment.\n* The company holds no obligation to extend or convert the internship into a full-time position.\n* The company expects the intern to maintain professionalism, punctuality, and confidentiality during the internship.\n\nIt's essential for Aditya to carefully review the terms and conditions, weigh the pros and cons, and consider his goals, priorities, and expectations before making a decision. Ultimately, the decision to take the internship is Aditya's to make.",
+        "latency": 91,
+        "sources": "Aditya Chaturvedi Developer Intern.docx.pdf"
+      }
+    ],
+    "pdfs": [
+      "Aditya Chaturvedi Developer Intern.docx.pdf"
+    ]
   }
 }

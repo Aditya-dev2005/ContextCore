@@ -1,11 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from models.schemas import QuestionRequest, QuestionResponse
 from services.vector_store import get_vectorstore, similarity_search
 from services.cache_service import CacheService
 from config import Config
 from langchain_openai import ChatOpenAI
+from routes.auth import verify_token
 import time
-import hashlib
+from typing import Optional
 
 router = APIRouter()
 
@@ -17,6 +18,14 @@ llm = ChatOpenAI(
 )
 
 cache = CacheService()
+
+def get_user_from_token(authorization: Optional[str]) -> str:
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+        username = verify_token(token)
+        if username:
+            return username
+    return "__default__"
 
 def build_prompt(context: str, question: str, history: list) -> str:
     history_text = ""
@@ -55,15 +64,18 @@ Question:
 Answer:"""
 
 @router.post("/ask", response_model=QuestionResponse)
-async def ask_question(request: QuestionRequest):
+async def ask_question(
+    request: QuestionRequest,
+    authorization: Optional[str] = Header(None)
+):
     start_time = time.time()
+    user = get_user_from_token(authorization)
 
     try:
-        # 1. Always check cache by question text only
-        #    Same question = cache hit, regardless of history
-        cached_response = cache.get_cached_response(request.question)
+        cache_key = f"{user}:{request.question}"
+        cached_response = cache.get_cached_response(cache_key)
         if cached_response:
-            print("⚡ Redis CACHE HIT!")
+            print(f"⚡ Cache HIT for user={user}")
             latency_ms = (time.time() - start_time) * 1000
             return QuestionResponse(
                 answer=cached_response["answer"],
@@ -71,18 +83,11 @@ async def ask_question(request: QuestionRequest):
                 latency_ms=round(latency_ms, 2)
             )
 
-        print("❌ Redis CACHE MISS - querying vector store")
-
-        # 2. Get shared in-memory index
-        vectorstore = get_vectorstore()
+        vectorstore = get_vectorstore(user=user)
         if vectorstore is None:
-            raise HTTPException(
-                status_code=400,
-                detail="No documents indexed yet. Please upload PDFs first."
-            )
+            raise HTTPException(status_code=400, detail="No documents indexed yet. Please upload PDFs first.")
 
-        # 3. Search across ALL indexed documents
-        docs = similarity_search(request.question, k=4)
+        docs = similarity_search(request.question, k=4, user=user)
 
         if not docs:
             answer = "No relevant information found in the uploaded documents."
@@ -90,25 +95,17 @@ async def ask_question(request: QuestionRequest):
         else:
             context = "\n\n".join([doc.page_content for doc in docs])
             sources = list(set([doc.metadata.get("source", "unknown") for doc in docs]))
-
-            # 4. Build prompt with conversation history
             prompt = build_prompt(context, request.question, request.conversation_history or [])
             response = llm.invoke(prompt)
             answer = response.content
 
-        # 5. Cache the response
-        cache.cache_response(request.question, {"answer": answer, "sources": sources})
-
+        cache.cache_response(cache_key, {"answer": answer, "sources": sources})
         latency_ms = (time.time() - start_time) * 1000
 
-        return QuestionResponse(
-            answer=answer,
-            sources=sources,
-            latency_ms=round(latency_ms, 2)
-        )
+        return QuestionResponse(answer=answer, sources=sources, latency_ms=round(latency_ms, 2))
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in ask_question: {str(e)}")
+        print(f"Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing question: {str(e)}")

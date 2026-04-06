@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.upload import router as upload_router
 from routes.chat import router as chat_router
-from routes.stream import router as stream_router  # NEW
+from routes.stream import router as stream_router
+from routes.auth import router as auth_router
 import uvicorn
 
 # Create FastAPI app
@@ -24,7 +25,8 @@ app.add_middleware(
 # Include routers
 app.include_router(upload_router, prefix="/api", tags=["upload"])
 app.include_router(chat_router, prefix="/api", tags=["chat"])
-app.include_router(stream_router, prefix="/api", tags=["stream"])  # NEW
+app.include_router(stream_router, prefix="/api", tags=["stream"])
+app.include_router(auth_router, prefix="/api", tags=["auth"])
 
 @app.get("/")
 async def root():
