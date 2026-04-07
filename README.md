@@ -31,7 +31,7 @@
 
 | Login Page | Document History |
 |------------|------------------|
-| ![Login](screenshots/login_page.png) | ![Document History](screenshots/document_history.png) |
+| ![Login](login.png) | ![Document History](screenshots/document_history.png) |
 
 | Multi-PDF Support | Redis Cache Hit |
 |------------------|-----------------|
