@@ -111,21 +111,49 @@ if not st.session_state.token:
     # Use columns to center the auth form properly across full width
     col_l, col_mid, col_r = st.columns([1, 1.2, 1])
     with col_mid:
-        st.markdown("""
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem 2rem;margin-top:4rem;">
-        """, unsafe_allow_html=True)
-
         mode = st.session_state.auth_mode
 
+        # 🔷 Logo box (clean header container)
+        st.markdown("""
+        <div style="
+            background:var(--surface2);
+            border:1px solid var(--border);
+            border-radius:20px;
+            padding:1.6rem;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            margin-bottom:1.2rem;
+            box-shadow: 0 0 40px rgba(108,99,255,0.15);
+        ">
+            <div style="
+                font-family:'Syne',sans-serif;
+                font-size:1.8rem;
+                font-weight:700;
+                color:var(--text);
+                letter-spacing:-0.5px;
+            ">
+                ⬡ ContextCore
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 🔽 Subtitle below the box
         st.markdown(f"""
-        <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:0.3rem;">⬡ ContextCore</div>
-        <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1.8rem;">{"Create your account" if mode == "signup" else "Sign in to continue"}</div>
+        <div style="
+            font-size:0.9rem;
+            color:var(--text-dim);
+            margin-bottom:1.6rem;
+            text-align:center;
+        ">
+            {"Create your account" if mode == "signup" else "Sign in to continue"}
+        </div>
         """, unsafe_allow_html=True)
 
         username = st.text_input("Username", key="auth_user", placeholder="Enter username")
         password = st.text_input("Password", key="auth_pass", placeholder="Enter password", type="password")
 
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
 
         btn_col1, btn_col2 = st.columns(2)
         with btn_col1:
@@ -153,7 +181,6 @@ if not st.session_state.token:
                 st.session_state.auth_mode = "login" if mode == "signup" else "signup"
                 st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 # ── MAIN APP ──────────────────────────────────────────────────────────────────
