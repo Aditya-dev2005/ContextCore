@@ -80,9 +80,6 @@ st.markdown("""
     .hist-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 0.4rem; }
     .hist-title { font-size: 0.78rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 0.2rem; }
     .hist-meta { font-size: 0.65rem; color: var(--text-faint); }
-    .auth-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; max-width: 400px; margin: 6rem auto; }
-    .auth-title { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
-    .auth-sub { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 1.5rem; }
     .user-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 0.25rem 0.75rem; font-size: 0.75rem; color: var(--text-dim); }
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
     .stat-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; }
@@ -109,60 +106,68 @@ def auth_headers():
         return {"Authorization": f"Bearer {st.session_state.token}"}
     return {}
 
-# ── AUTH WALL — show login if not logged in ───────────────────────────────────
+# ── AUTH WALL ─────────────────────────────────────────────────────────────────
 if not st.session_state.token:
-    st.markdown('<div class="auth-box">', unsafe_allow_html=True)
-    st.markdown('<div class="auth-title">⬡ ContextCore</div>', unsafe_allow_html=True)
+    # Use columns to center the auth form properly across full width
+    col_l, col_mid, col_r = st.columns([1, 1.2, 1])
+    with col_mid:
+        st.markdown("""
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem 2rem;margin-top:4rem;">
+        """, unsafe_allow_html=True)
 
-    mode = st.session_state.auth_mode
-    st.markdown(f'<div class="auth-sub">{"Create your account" if mode == "signup" else "Sign in to continue"}</div>', unsafe_allow_html=True)
+        mode = st.session_state.auth_mode
 
-    username = st.text_input("Username", key="auth_user", placeholder="Enter username")
-    password = st.text_input("Password", key="auth_pass", placeholder="Enter password", type="password")
+        st.markdown(f"""
+        <div style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:0.3rem;">⬡ ContextCore</div>
+        <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1.8rem;">{"Create your account" if mode == "signup" else "Sign in to continue"}</div>
+        """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Sign Up" if mode == "signup" else "Login", type="primary", use_container_width=True):
-            if username and password:
-                endpoint = "signup" if mode == "signup" else "login"
-                try:
-                    r = requests.post(f"{API_BASE_URL}/api/auth/{endpoint}",
-                                      json={"username": username, "password": password})
-                    if r.status_code == 200:
-                        data = r.json()
-                        st.session_state.token = data["token"]
-                        st.session_state.username = data["username"]
-                        st.rerun()
-                    else:
-                        st.error(r.json().get("detail", "Error"))
-                except Exception as e:
-                    st.error(str(e))
-            else:
-                st.warning("Please enter username and password")
+        username = st.text_input("Username", key="auth_user", placeholder="Enter username")
+        password = st.text_input("Password", key="auth_pass", placeholder="Enter password", type="password")
 
-    with col2:
-        label = "Have an account? Login" if mode == "signup" else "New? Sign Up"
-        if st.button(label, use_container_width=True):
-            st.session_state.auth_mode = "login" if mode == "signup" else "signup"
-            st.rerun()
+        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
-    st.markdown('</div>', unsafe_allow_html=True)
+        btn_col1, btn_col2 = st.columns(2)
+        with btn_col1:
+            if st.button("Sign Up" if mode == "signup" else "Login", type="primary", use_container_width=True):
+                if username and password:
+                    endpoint = "signup" if mode == "signup" else "login"
+                    try:
+                        r = requests.post(f"{API_BASE_URL}/api/auth/{endpoint}",
+                                          json={"username": username, "password": password})
+                        if r.status_code == 200:
+                            data = r.json()
+                            st.session_state.token = data["token"]
+                            st.session_state.username = data["username"]
+                            st.rerun()
+                        else:
+                            st.error(r.json().get("detail", "Error"))
+                    except Exception as e:
+                        st.error(str(e))
+                else:
+                    st.warning("Please enter username and password")
+
+        with btn_col2:
+            label = "Have an account? Login" if mode == "signup" else "New? Sign Up"
+            if st.button(label, use_container_width=True):
+                st.session_state.auth_mode = "login" if mode == "signup" else "signup"
+                st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# ── MAIN APP (only shown when logged in) ─────────────────────────────────────
+# ── MAIN APP ──────────────────────────────────────────────────────────────────
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown('<div class="wordmark"><div class="wordmark-dot"></div> ContextCore</div>', unsafe_allow_html=True)
     st.markdown('<div class="wordmark-tag">RAG Document Intelligence</div>', unsafe_allow_html=True)
 
-    # User badge + logout
     col_u, col_out = st.columns([3, 1])
     with col_u:
-        st.markdown(f'<div class="user-badge">👤 {html.escape(st.session_state.username)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="user-badge">👤 {html.escape(st.session_state.username or "")}</div>', unsafe_allow_html=True)
     with col_out:
         if st.button("↩", help="Logout"):
-            for k in ['token', 'username', 'chat_history', 'uploaded_pdfs', 'metrics']:
+            for k in ['token', 'username', 'chat_history', 'uploaded_pdfs']:
                 st.session_state[k] = [] if k in ['chat_history', 'uploaded_pdfs'] else None
             st.session_state.metrics = {'total_questions': 0, 'avg_latency': 0}
             st.rerun()
@@ -242,7 +247,6 @@ with st.sidebar:
             except: pass
             st.rerun()
 
-    # ── History ───────────────────────────────────────────────────────────────
     st.divider()
     st.markdown('<div class="section-label">History</div>', unsafe_allow_html=True)
 
@@ -257,7 +261,6 @@ with st.sidebar:
     else:
         for s in sessions[:8]:
             safe_title = html.escape(s["title"])
-            pdfs_str = ", ".join(s.get("pdfs", []))[:40] or "No PDFs"
             msg_count = len([m for m in s["messages"] if m["role"] == "user"])
             col_load, col_del = st.columns([4, 1])
             with col_load:
