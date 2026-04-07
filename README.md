@@ -1,6 +1,6 @@
 # ContextCore ⬡
 
-> **RAG-powered document intelligence engine** — query multiple PDFs using hybrid semantic + keyword retrieval, with Redis caching and a FastAPI backend.
+> **RAG-powered document intelligence engine** — query multiple PDFs using hybrid semantic + keyword retrieval, with JWT auth, real-time streaming, Redis caching, and session history.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)
@@ -9,6 +9,7 @@
 ![FAISS](https://img.shields.io/badge/FAISS-Vector_Store-FF6B6B?style=flat-square)
 ![Redis](https://img.shields.io/badge/Redis-Caching-DC382D?style=flat-square&logo=redis&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
 
 ---
 
@@ -24,34 +25,25 @@
 
 ## Screenshots
 
-### Home Page
-![Home Page](screenshots/home_page.png)
+| Home Page | Chat with Answers |
+|-----------|------------------|
+| ![Home](screenshots/home_page.png) | ![Chat](screenshots/chat_with_answers.png) |
 
-### Chat with Answers
-![Chat with Answers](screenshots/chat_with_answers.png)
+| Login Page | Document History |
+|------------|------------------|
+| ![Login](screenshots/login_page.png) | ![Document History](screenshots/document_history.png) |
 
-### Multi-PDF Support
-![Multiple PDFs](screenshots/multiple_pdf.png)
+| Multi-PDF Support | Redis Cache Hit |
+|------------------|-----------------|
+| ![Multi PDF](screenshots/multiple_pdf.png) | ![Cache](screenshots/redis_cache_hit_demo.png) |
 
-### Querying Across Multiple Documents
-![Multi Document QA](screenshots/multi_documents_qa.png)
-
-### Conversation Memory
-![Conversation Memory](screenshots/conversation_memory_demo.png)
-
-### Redis Cache Performance
-![Redis Cache Hit](screenshots/redis_cache_hit_demo.png)
 
 > ⚡ Same question asked twice — latency dropped from **6605ms → 4ms** (1650x faster) on Redis cache hit.
-
-
----
-
 ## What is ContextCore?
 
 ContextCore is a production-grade **Retrieval-Augmented Generation (RAG)** system that lets you upload multiple PDF documents and ask natural language questions across all of them simultaneously.
 
-It goes beyond basic RAG by combining **two retrieval strategies** — vector similarity search (FAISS) and keyword matching (BM25) — and fusing their results using Reciprocal Rank Fusion. A Redis caching layer eliminates redundant LLM calls, reducing latency on repeated queries from ~2.5s to ~0.3s.
+It goes beyond basic RAG by combining **two retrieval strategies** — vector similarity search (FAISS) and keyword matching (BM25) — fused via Reciprocal Rank Fusion. Responses stream token-by-token like ChatGPT. A Redis caching layer eliminates redundant LLM calls. JWT authentication gives each user an isolated private document space. Session history lets you save and reload any past conversation.
 
 ---
 
@@ -59,22 +51,25 @@ It goes beyond basic RAG by combining **two retrieval strategies** — vector si
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Streamlit Frontend                        │
-│         Multi-PDF upload · Chat UI · Session analytics          │
+│                    Streamlit Frontend (app.py)                   │
+│     JWT Login · Multi-PDF upload · Streaming Chat UI            │
+│     Session History · Per-user document space                    │
 └───────────────────────────┬─────────────────────────────────────┘
-                            │ HTTP (REST)
+                            │ HTTP (REST + SSE streaming)
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                        FastAPI Backend                           │
-│              POST /api/upload · POST /api/ask                    │
+│  POST /api/auth/signup  POST /api/auth/login  (JWT)             │
+│  POST /api/upload       POST /api/ask                            │
+│  POST /api/stream       GET  /health                             │
 └───────┬──────────────────────────────────────────┬──────────────┘
         │                                          │
         ▼                                          ▼
 ┌───────────────┐                        ┌─────────────────────┐
 │  Redis Cache  │                        │   RAG Pipeline      │
 │  (TTL-based)  │◄──── cache hit ────────│   (LangChain)       │
-└───────────────┘                        └────────┬────────────┘
-                                                  │
+│  Per-user key │                        └────────┬────────────┘
+└───────────────┘                                 │
                               ┌───────────────────┴──────────────┐
                               │                                  │
                         ┌─────▼──────┐                   ┌──────▼──────┐
@@ -94,23 +89,32 @@ It goes beyond basic RAG by combining **two retrieval strategies** — vector si
 
 ## Key Features
 
+### 🔐 JWT Authentication
+Secure signup/login with bcrypt-hashed passwords and JWT tokens (24hr expiry). Every API request is authenticated — your documents are never accessible to other users.
+
+### 👤 Per-User Document Isolation
+Each authenticated user gets their own in-memory FAISS vectorstore. Documents uploaded by one user are completely invisible to others, enforced at the API layer.
+
+### 🌊 Real-Time Streaming Responses
+Answers stream token-by-token via Server-Sent Events (SSE) — the same UX as ChatGPT. A blinking cursor shows while the model is generating. Cached answers also stream for consistent UX.
+
+### 📚 Session History
+Save any conversation with one click. Saved sessions store the full message history and PDF filenames, with timestamps. Load any past session to pick up exactly where you left off.
+
 ### 🔍 Hybrid Retrieval
 Pure vector search excels at semantic similarity but struggles with exact terminology. Pure keyword search misses paraphrased questions. ContextCore runs both in parallel and fuses results using **Reciprocal Rank Fusion (RRF)**, giving better recall than either method alone.
 
 ### 📄 Multi-Document Support
-Upload and index multiple PDFs in a single session. All documents are stored in a shared FAISS index — queries retrieve context from across your entire document collection simultaneously.
+Upload and index multiple PDFs in one session. Queries retrieve context from across your entire document collection simultaneously, with per-chunk source metadata tracking.
 
 ### ⚡ Redis Response Caching
-Repeated queries are served directly from Redis cache instead of re-invoking the LLM. Reduces latency from ~2.5s to ~0.3s on cache hits and eliminates redundant API costs.
+Repeated queries served directly from Redis cache. Reduces latency from ~2.5s to ~0.3s on cache hits (1650x on cold data). Cache keys are scoped per user.
 
 ### 🔌 OpenRouter LLM Gateway
-Uses [OpenRouter](https://openrouter.ai) as the LLM gateway, giving access to multiple frontier models (GPT-4o, Claude, Mistral) through a single API — no vendor lock-in.
+Uses [OpenRouter](https://openrouter.ai) as the LLM gateway — access GPT-4o, Claude, Mistral, and LLaMA through a single API. No vendor lock-in.
 
 ### 🏗️ Decoupled Architecture
-Streamlit frontend communicates with the FastAPI backend over HTTP. Heavy operations (embedding, retrieval, LLM calls) run server-side and never block the UI.
-
-### 📐 Smart Chunking
-Documents split using LangChain's `RecursiveCharacterTextSplitter` with `chunk_size=1000` and `chunk_overlap=200` — overlap ensures context is never lost at chunk boundaries.
+Streamlit frontend communicates with FastAPI backend over HTTP. Heavy operations (embedding, retrieval, LLM calls) run server-side and never block the UI.
 
 ---
 
@@ -120,13 +124,16 @@ Documents split using LangChain's `RecursiveCharacterTextSplitter` with `chunk_s
 |-------|-----------|
 | Frontend | Streamlit |
 | Backend API | FastAPI (async) |
+| Authentication | JWT (PyJWT) + SHA-256 |
 | LLM Gateway | OpenRouter API |
 | Orchestration | LangChain |
 | Vector Search | FAISS |
 | Keyword Search | BM25 (rank_bm25) |
 | Result Fusion | Reciprocal Rank Fusion |
-| Caching | Redis (TTL-based) |
+| Caching | Redis (TTL-based, per-user) |
+| Streaming | Server-Sent Events (SSE) |
 | PDF Parsing | PyPDF2 |
+| Session Storage | JSON file (local) |
 
 ---
 
@@ -134,28 +141,30 @@ Documents split using LangChain's `RecursiveCharacterTextSplitter` with `chunk_s
 
 ```
 ContextCore/
-├── pdf_rag/                    # Backend + Frontend
-│   ├── main.py                 # FastAPI application entry point
-│   ├── app.py                  # Streamlit frontend
-│   ├── config.py               # Configuration & environment settings
-│   ├── requirements.txt        # Python dependencies
+├── pdf_rag/
+│   ├── main.py                     # FastAPI entry point
+│   ├── app.py                      # Streamlit frontend
+│   ├── config.py                   # Config & env settings
+│   ├── requirements.txt
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── schemas.py          # Pydantic request/response schemas
+│   │   └── schemas.py              # Pydantic schemas
 │   ├── routes/
 │   │   ├── __init__.py
-│   │   ├── upload.py           # POST /api/upload
-│   │   └── chat.py             # POST /api/ask
+│   │   ├── auth.py                 # POST /api/auth/signup, /login (JWT)
+│   │   ├── upload.py               # POST /api/upload (user-scoped)
+│   │   ├── chat.py                 # POST /api/ask (user-scoped)
+│   │   └── stream.py               # POST /api/stream (SSE streaming)
 │   ├── services/
 │   │   ├── __init__.py
-│   │   ├── pdf_processor.py    # PDF parsing & chunking
-│   │   └── vector_store.py     # FAISS + BM25 hybrid search
+│   │   ├── pdf_processor.py        # PDF parsing & chunking
+│   │   ├── vector_store.py         # Per-user FAISS + BM25 hybrid search
+│   │   ├── cache_service.py        # Redis TTL caching (per-user keys)
+│   │   ├── user_service.py         # User storage & password hashing
+│   │   └── history_service.py      # Session save/load/delete (JSON)
 │   └── utils/
-│       └── helpers.py          # Shared utility functions
+│       └── helpers.py
 ├── screenshots/
-│   ├── home_page.png
-│   ├── chat_with_answers.png
-│   └── multiple_pdf.png
 ├── demo_video.mp4
 ├── README.md
 └── .gitignore
@@ -167,23 +176,21 @@ ContextCore/
 
 ### Prerequisites
 - Python 3.10+
-- Redis server (`redis-server` or Docker)
+- Redis server (optional — app works without it)
 - OpenRouter API key — [get one here](https://openrouter.ai)
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/Aditya-dev2005/contextcore.git
 cd contextcore/pdf_rag
 
-# Create and activate virtual environment
 python -m venv venv
 venv\Scripts\activate        # Windows
 # source venv/bin/activate   # Mac/Linux
 
-# Install dependencies
 pip install -r requirements.txt
+pip install PyJWT
 ```
 
 ### Environment Setup
@@ -192,61 +199,70 @@ Create a `.env` file inside `pdf_rag/`:
 
 ```env
 OPENROUTER_API_KEY=your_openrouter_api_key_here
-REDIS_URL=redis://localhost:6379
-API_BASE_URL=http://127.0.0.1:8000
+REDIS_HOST=localhost
+REDIS_PORT=6379
+JWT_SECRET=your-secret-key-here
+API_BASE_URL=http://127.0.0.1:8001
 ```
 
 ### Running Locally
 
 ```bash
-# Terminal 1 — Start Redis
-redis-server
+# Terminal 1 — FastAPI backend
+uvicorn main:app --reload --port 8001
 
-# Terminal 2 — Start FastAPI backend (inside pdf_rag/)
-uvicorn main:app --reload --port 8000
-
-# Terminal 3 — Start Streamlit frontend (inside pdf_rag/)
-streamlit run app.py --server.port 8501
+# Terminal 2 — Streamlit frontend
+streamlit run app.py
 ```
 
-Open `http://localhost:8501` · API docs: `http://localhost:8000/docs`
+Open `http://localhost:8501` · API docs: `http://localhost:8001/docs`
 
 ---
 
 ## API Reference
 
-### `POST /api/upload`
-Upload and index a PDF document.
+### Auth
 
-**Request:** `multipart/form-data` with `file` field
-
-**Response:**
+#### `POST /api/auth/signup`
 ```json
-{
-  "message": "PDF processed successfully",
-  "filename": "research_paper.pdf",
-  "chunks": 42
-}
+{ "username": "aditya", "password": "mypassword" }
+```
+Returns JWT token.
+
+#### `POST /api/auth/login`
+```json
+{ "username": "aditya", "password": "mypassword" }
+```
+Returns JWT token.
+
+### Documents
+
+#### `POST /api/upload`
+**Headers:** `Authorization: Bearer <token>`  
+**Body:** `multipart/form-data` with `file` field
+
+```json
+{ "message": "PDF processed successfully", "filename": "report.pdf", "chunks": 42 }
 ```
 
-### `POST /api/ask`
-Query across all indexed documents.
+### Chat
 
-**Request:**
+#### `POST /api/ask`
+**Headers:** `Authorization: Bearer <token>`
 ```json
-{ "question": "What methodology was used in the study?" }
+{ "question": "What methodology was used?", "conversation_history": [] }
 ```
 
-**Response:**
-```json
-{
-  "answer": "The study employed a mixed-methods approach...",
-  "sources": ["research_paper.pdf", "appendix.pdf"]
-}
-```
+#### `POST /api/stream`
+**Headers:** `Authorization: Bearer <token>`  
+Returns SSE stream of tokens. Each event: `data: {"token": "..."}` or `data: {"done": true, "sources": [...]}`
 
-### `GET /health`
-Health check endpoint.
+### Health
+
+#### `GET /health`
+```json
+{ "status": "healthy" }
+```
 
 ---
 
@@ -255,9 +271,12 @@ Health check endpoint.
 | Metric | Baseline | With Optimizations |
 |--------|----------|--------------------|
 | Avg response latency | ~2.5s | **~0.3s** (cached) |
+| Repeated query latency | ~2.5s | **~4ms** (Redis hit) |
 | Repeated query cost | Full LLM call | Zero — Redis hit |
 | Retrieval method | Vector-only | Hybrid FAISS + BM25 |
 | Multi-document | ❌ | ✅ |
+| Streaming | ❌ | ✅ Token-by-token |
+| Auth | ❌ | ✅ JWT per-user |
 
 ---
 
@@ -280,10 +299,8 @@ Generate Query Embedding
                               Prompt = context + question
                                          │
                                          ▼
-                            OpenRouter → LLM → Answer
+                  OpenRouter → LLM → Streamed token-by-token → UI
 ```
-
----
 
 ---
 
