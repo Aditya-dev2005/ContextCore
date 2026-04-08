@@ -12,8 +12,14 @@
 ![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
 
 ---
+## Live Demo
 
-## Demo
+- **Frontend:** https://contextcore-y7kzygpxf4wtqbhrch9jak.streamlit.app/
+- **Backend API:** https://contextcore-production-bb70.up.railway.app/
+- **API Docs:** https://contextcore-production-bb70.up.railway.app/docs
+
+---
+## Video Demo
 
 ### Watch it in action
 
