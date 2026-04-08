@@ -200,5 +200,75 @@
     "pdfs": [
       "Aditya Chaturvedi Developer Intern.docx.pdf"
     ]
+  },
+  "ed0f6e69": {
+    "id": "ed0f6e69",
+    "title": "summarise",
+    "timestamp": "08 Apr 2026, 12:33 PM",
+    "messages": [
+      {
+        "role": "user",
+        "content": "summarise"
+      },
+      {
+        "role": "assistant",
+        "content": "ContextCore is an advanced Retrieval-Augmented Generation (RAG) system designed to enable efficient querying of multiple PDF documents using natural language. The system aims to provide a robust solution for document querying by combining semantic search and keyword-based retrieval techniques. It allows users to upload multiple PDF documents and interact with them through natural language queries, generating accurate and relevant responses. The system's primary objectives are to design and develop an intelligent system for querying multiple PDF documents simultaneously, implement a hybrid retrieval mechanism, generate accurate and context-aware answers, improve system performance, ensure secure access and data privacy, provide a smooth and interactive user experience, and maintain session history for better usability and continuity.",
+        "latency": 4819,
+        "sources": "Software_engineering_synopsis.pdf"
+      },
+      {
+        "role": "user",
+        "content": "summarise"
+      },
+      {
+        "role": "assistant",
+        "content": "ContextCore is an advanced Retrieval-Augmented Generation (RAG) system designed to enable efficient querying of multiple PDF documents using natural language. The system aims to provide a robust solution for document querying by combining semantic search and keyword-based retrieval techniques. It allows users to upload multiple PDF documents and interact with them through natural language queries, generating accurate and relevant responses. The system's primary objectives are to design and develop an intelligent system for querying multiple PDF documents simultaneously, implement a hybrid retrieval mechanism, generate accurate and context-aware answers, improve system performance, ensure secure access and data privacy, provide a smooth and interactive user experience, and maintain session history for better usability and continuity.",
+        "latency": 85,
+        "sources": "Software_engineering_synopsis.pdf"
+      },
+      {
+        "role": "user",
+        "content": "summarise"
+      },
+      {
+        "role": "assistant",
+        "content": "ContextCore is an advanced Retrieval-Augmented Generation (RAG) system designed to enable efficient querying of multiple PDF documents using natural language. The system aims to provide a robust solution for document querying by combining semantic search and keyword-based retrieval techniques. It allows users to upload multiple PDF documents and interact with them through natural language queries, generating accurate and relevant responses. The system's primary objectives are to design and develop an intelligent system for querying multiple PDF documents simultaneously, implement a hybrid retrieval mechanism, generate accurate and context-aware answers, improve system performance, ensure secure access and data privacy, provide a smooth and interactive user experience, and maintain session history for better usability and continuity.",
+        "latency": 71,
+        "sources": "Software_engineering_synopsis.pdf"
+      },
+      {
+        "role": "user",
+        "content": "summarise"
+      },
+      {
+        "role": "assistant",
+        "content": "ContextCore is an advanced Retrieval-Augmented Generation (RAG) system designed to enable efficient querying of multiple PDF documents using natural language. The system aims to provide a robust solution for document querying by combining semantic search and keyword-based retrieval techniques. It allows users to upload multiple PDF documents and interact with them through natural language queries, generating accurate and relevant responses. The system's primary objectives are to design and develop an intelligent system for querying multiple PDF documents simultaneously, implement a hybrid retrieval mechanism, generate accurate and context-aware answers, improve system performance, ensure secure access and data privacy, provide a smooth and interactive user experience, and maintain session history for better usability and continuity.",
+        "latency": 69,
+        "sources": "Software_engineering_synopsis.pdf"
+      },
+      {
+        "role": "user",
+        "content": "What is this document about?"
+      },
+      {
+        "role": "assistant",
+        "content": "This document is about ContextCore, an advanced Retrieval-Augmented Generation (RAG) system designed to enable efficient querying of multiple PDF documents using natural language. It's a project synopsis for a B.Tech project in Computer Science and Engineering, outlining the system's objectives, architecture, and requirements. The system aims to provide a robust solution for document querying by combining semantic search and keyword-based retrieval techniques, ensuring accurate and context-aware responses.",
+        "latency": 2228,
+        "sources": "Software_engineering_synopsis.pdf"
+      },
+      {
+        "role": "user",
+        "content": "what did you just explained"
+      },
+      {
+        "role": "assistant",
+        "content": "I just explained the ContextCore system, which is an advanced Retrieval-Augmented Generation (RAG) system designed to enable efficient querying of multiple PDF documents using natural language. I provided an overview of the system's architecture, components, and functionality, including its ability to retrieve relevant information from documents, generate accurate and context-aware responses, and provide a smooth and interactive user experience.",
+        "latency": 2228,
+        "sources": "Software_engineering_synopsis.pdf"
+      }
+    ],
+    "pdfs": [
+      "Software_engineering_synopsis.pdf"
+    ]
   }
 }
