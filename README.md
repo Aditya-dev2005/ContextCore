@@ -16,8 +16,8 @@
 
 ## Live Demo
 
-- **Frontend:** contextcore-frontend-production-5e9c.up.railway.app
-- **Backend API:**contextcore-production-673f.up.railway.app
+- **Frontend:** [contextcore-frontend-production-5e9c.up.railway.app](https://contextcore-frontend-production-5e9c.up.railway.app/)
+- **Backend API:** [contextcore-production-673f.up.railway.app](https://contextcore-production-673f.up.railway.app/)
 - **API Docs:** https://contextcore-production-bb70.up.railway.app/docs
 
 ---
