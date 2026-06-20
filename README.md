@@ -1,6 +1,6 @@
 # ContextCore ⬡
 
-> **RAG-powered document intelligence engine** — query multiple PDFs using hybrid semantic + keyword retrieval, with JWT auth, real-time streaming, Redis caching, and session history.
+> **RAG-powered document intelligence engine** — query multiple PDFs using hybrid semantic + keyword retrieval, with JWT auth, real-time streaming, semantic caching, automated RAG evaluation, and session history.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white)
@@ -10,8 +10,10 @@
 ![Redis](https://img.shields.io/badge/Redis-Caching-DC382D?style=flat-square&logo=redis&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)
+![RAGAS](https://img.shields.io/badge/RAGAS-Evaluation-9B59B6?style=flat-square)
 
 ---
+
 ## Live Demo
 
 - **Frontend:** https://contextcore-y7kzygpxf4wtqbhrch9jak.streamlit.app/
@@ -19,6 +21,7 @@
 - **API Docs:** https://contextcore-production-bb70.up.railway.app/docs
 
 ---
+
 ## Video Demo
 
 ### Watch it in action
@@ -43,13 +46,21 @@
 |------------------|-----------------|
 | ![Multi PDF](screenshots/multiple_pdf.png) | ![Cache](screenshots/redis_cache_hit_demo.png) |
 
+| Semantic Cache (Paraphrase Match) | RAGAS Evaluation Panel |
+|-----------------------------------|------------------------|
+| ![Semantic Cache](screenshots/semantic_cache.png) | ![RAGAS Evaluation](screenshots/ragas_evaluation.png) |
 
-> ⚡ Same question asked twice — latency dropped from **6605ms → 4ms** (1650x faster) on Redis cache hit.
+> ⚡ Same question asked twice — latency dropped from **6605ms → 4ms** (1650x faster) on cache hit.
+> ⚡ Paraphrased question ("What is this document about?" vs "This document is about what") — still hits cache via **semantic similarity matching**, not just exact text match.
+> 📊 RAGAS-style evaluation panel scores retrieval and answer quality live — Precision@K, MRR, Hit Rate, Answer Relevance, Context Precision — with an overall weighted score.
+
+---
+
 ## What is ContextCore?
 
 ContextCore is a production-grade **Retrieval-Augmented Generation (RAG)** system that lets you upload multiple PDF documents and ask natural language questions across all of them simultaneously.
 
-It goes beyond basic RAG by combining **two retrieval strategies** — vector similarity search (FAISS) and keyword matching (BM25) — fused via Reciprocal Rank Fusion. Responses stream token-by-token like ChatGPT. A Redis caching layer eliminates redundant LLM calls. JWT authentication gives each user an isolated private document space. Session history lets you save and reload any past conversation.
+It goes beyond basic RAG by combining **two retrieval strategies** — vector similarity search (FAISS) and keyword matching (BM25) — fused via Reciprocal Rank Fusion. Responses stream token-by-token like ChatGPT. A **two-level semantic caching layer** eliminates redundant LLM calls for both exact and paraphrased repeat questions. An **automated RAGAS-style evaluation pipeline** quantifies retrieval and answer quality using LLM-as-judge scoring. JWT authentication gives each user an isolated private document space. Session history lets you save and reload any past conversation.
 
 ---
 
@@ -65,30 +76,39 @@ It goes beyond basic RAG by combining **two retrieval strategies** — vector si
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                        FastAPI Backend                           │
-│  POST /api/auth/signup  POST /api/auth/login  (JWT)             │
-│  POST /api/upload       POST /api/ask                            │
-│  POST /api/stream       GET  /health                             │
-└───────┬──────────────────────────────────────────┬──────────────┘
-        │                                          │
-        ▼                                          ▼
-┌───────────────┐                        ┌─────────────────────┐
-│  Redis Cache  │                        │   RAG Pipeline      │
-│  (TTL-based)  │◄──── cache hit ────────│   (LangChain)       │
-│  Per-user key │                        └────────┬────────────┘
-└───────────────┘                                 │
-                              ┌───────────────────┴──────────────┐
-                              │                                  │
-                        ┌─────▼──────┐                   ┌──────▼──────┐
-                        │   FAISS    │                    │    BM25     │
-                        │  (vector)  │                    │  (keyword)  │
-                        └─────┬──────┘                   └──────┬──────┘
-                              └──────────────┬───────────────────┘
-                                             │ Reciprocal Rank Fusion
-                                             ▼
-                                    ┌─────────────────┐
-                                    │   OpenRouter    │
-                                    │  (LLM Gateway)  │
-                                    └─────────────────┘
+│  POST /api/auth/signup   POST /api/auth/login   (JWT)           │
+│  POST /api/upload        POST /api/ask                           │
+│  POST /api/stream        POST /api/evaluate                      │
+│  GET  /health                                                    │
+└───────┬──────────────────────────────────────┬──────────────────┘
+        │                                      │
+        ▼                                      ▼
+┌─────────────────────┐              ┌─────────────────────┐
+│  Semantic Cache       │              │   RAG Pipeline       │
+│  ┌─────────────────┐ │◄── hit ──────│   (LangChain)        │
+│  │ Exact match       │ │              └────────┬─────────────┘
+│  │ (MD5 hash)         │ │                       │
+│  ├─────────────────┤ │         ┌───────────────┴──────────────┐
+│  │ Semantic match     │ │         │                              │
+│  │ (cosine sim ≥0.92) │ │   ┌─────▼──────┐               ┌──────▼──────┐
+│  └─────────────────┘ │   │   FAISS    │                │    BM25     │
+│  Per-user, TTL-based  │   │  (vector)  │                │  (keyword)  │
+└──────────────────────┘   └─────┬──────┘                └──────┬──────┘
+                                  └──────────────┬───────────────────┘
+                                                  │ Reciprocal Rank Fusion
+                                                  ▼
+                                         ┌─────────────────┐
+                                         │   OpenRouter     │
+                                         │  (LLM Gateway)   │
+                                         └────────┬─────────┘
+                                                  │
+                                                  ▼
+                                  ┌───────────────────────────────┐
+                                  │   RAGAS Evaluator               │
+                                  │   (LLM-as-judge)                │
+                                  │   Precision@K · MRR · Hit Rate  │
+                                  │   Answer Relevance · Ctx Prec.  │
+                                  └───────────────────────────────┘
 ```
 
 ---
@@ -104,6 +124,12 @@ Each authenticated user gets their own in-memory FAISS vectorstore. Documents up
 ### 🌊 Real-Time Streaming Responses
 Answers stream token-by-token via Server-Sent Events (SSE) — the same UX as ChatGPT. A blinking cursor shows while the model is generating. Cached answers also stream for consistent UX.
 
+### 🧠 Semantic Caching
+A two-level cache: a fast exact-match layer (MD5 hash) checked first, then a semantic layer using `sentence-transformers` embeddings and cosine similarity (threshold 0.92) that catches **paraphrased questions** an exact-match cache would miss entirely — e.g. "What's the leave policy?" and "Tell me about the leave policy" resolve to the same cached answer. Falls back gracefully to exact-match-only if embeddings are unavailable.
+
+### 📊 Automated RAG Evaluation (RAGAS-style)
+A dedicated `/api/evaluate` endpoint runs an LLM-as-judge evaluation pipeline implementing the core RAGAS metrics — **Precision@K**, **MRR (Mean Reciprocal Rank)**, **Hit Rate**, **Answer Relevance**, and **Context Precision** — producing a weighted overall quality score with human-readable grading (Excellent / Good / Fair / Poor). Built without the heavyweight `ragas` package, using direct LLM-as-judge prompting for full control over scoring logic and minimal dependency footprint.
+
 ### 📚 Session History
 Save any conversation with one click. Saved sessions store the full message history and PDF filenames, with timestamps. Load any past session to pick up exactly where you left off.
 
@@ -113,14 +139,11 @@ Pure vector search excels at semantic similarity but struggles with exact termin
 ### 📄 Multi-Document Support
 Upload and index multiple PDFs in one session. Queries retrieve context from across your entire document collection simultaneously, with per-chunk source metadata tracking.
 
-### ⚡ Redis Response Caching
-Repeated queries served directly from Redis cache. Reduces latency from ~2.5s to ~0.3s on cache hits (1650x on cold data). Cache keys are scoped per user.
-
 ### 🔌 OpenRouter LLM Gateway
 Uses [OpenRouter](https://openrouter.ai) as the LLM gateway — access GPT-4o, Claude, Mistral, and LLaMA through a single API. No vendor lock-in.
 
 ### 🏗️ Decoupled Architecture
-Streamlit frontend communicates with FastAPI backend over HTTP. Heavy operations (embedding, retrieval, LLM calls) run server-side and never block the UI.
+Streamlit frontend communicates with FastAPI backend over HTTP. Heavy operations (embedding, retrieval, LLM calls, evaluation) run server-side and never block the UI.
 
 ---
 
@@ -136,7 +159,8 @@ Streamlit frontend communicates with FastAPI backend over HTTP. Heavy operations
 | Vector Search | FAISS |
 | Keyword Search | BM25 (rank_bm25) |
 | Result Fusion | Reciprocal Rank Fusion |
-| Caching | Redis (TTL-based, per-user) |
+| Caching | Redis — exact + semantic (sentence-transformers, cosine similarity) |
+| Evaluation | Custom RAGAS-style LLM-as-judge (Precision@K, MRR, Hit Rate, Answer Relevance, Context Precision) |
 | Streaming | Server-Sent Events (SSE) |
 | PDF Parsing | PyPDF2 |
 | Session Storage | JSON file (local) |
@@ -154,18 +178,21 @@ ContextCore/
 │   ├── requirements.txt
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── schemas.py              # Pydantic schemas
+│   │   └── schemas.py              # Pydantic schemas (incl. Evaluate schemas)
 │   ├── routes/
 │   │   ├── __init__.py
 │   │   ├── auth.py                 # POST /api/auth/signup, /login (JWT)
 │   │   ├── upload.py               # POST /api/upload (user-scoped)
-│   │   ├── chat.py                 # POST /api/ask (user-scoped)
-│   │   └── stream.py               # POST /api/stream (SSE streaming)
+│   │   ├── chat.py                 # POST /api/ask (semantic cache integrated)
+│   │   ├── stream.py               # POST /api/stream (SSE + semantic cache)
+│   │   └── evaluate.py             # POST /api/evaluate (RAGAS-style metrics)
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── pdf_processor.py        # PDF parsing & chunking
 │   │   ├── vector_store.py         # Per-user FAISS + BM25 hybrid search
-│   │   ├── cache_service.py        # Redis TTL caching (per-user keys)
+│   │   ├── cache_service.py        # Redis client wrapper
+│   │   ├── semantic_cache.py       # Two-level exact + semantic caching
+│   │   ├── evaluation_service.py   # RAGASEvaluator — LLM-as-judge metrics
 │   │   ├── user_service.py         # User storage & password hashing
 │   │   └── history_service.py      # Session save/load/delete (JSON)
 │   └── utils/
@@ -182,7 +209,7 @@ ContextCore/
 
 ### Prerequisites
 - Python 3.10+
-- Redis server (optional — app works without it)
+- Redis server (optional — app works without it, falls back gracefully)
 - OpenRouter API key — [get one here](https://openrouter.ai)
 
 ### Installation
@@ -196,8 +223,9 @@ venv\Scripts\activate        # Windows
 # source venv/bin/activate   # Mac/Linux
 
 pip install -r requirements.txt
-pip install PyJWT
 ```
+
+> Note: `sentence-transformers` (for semantic caching) downloads the `all-MiniLM-L6-v2` model (~80MB) on first use. It's lazy-loaded, so server startup is not blocked.
 
 ### Environment Setup
 
@@ -207,6 +235,9 @@ Create a `.env` file inside `pdf_rag/`:
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 REDIS_HOST=localhost
 REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+REDIS_TTL=3600
 JWT_SECRET=your-secret-key-here
 API_BASE_URL=http://127.0.0.1:8000
 ```
@@ -244,7 +275,7 @@ Returns JWT token.
 ### Documents
 
 #### `POST /api/upload`
-**Headers:** `Authorization: Bearer <token>`  
+**Headers:** `Authorization: Bearer <token>`
 **Body:** `multipart/form-data` with `file` field
 
 ```json
@@ -258,10 +289,55 @@ Returns JWT token.
 ```json
 { "question": "What methodology was used?", "conversation_history": [] }
 ```
+**Response:**
+```json
+{
+  "answer": "...",
+  "sources": ["report.pdf"],
+  "latency_ms": 4.2,
+  "cache_type": "semantic",
+  "cache_similarity": 0.947
+}
+```
+`cache_type` is `null` on a cold (non-cached) response, `"exact"` on an exact text match, or `"semantic"` on a paraphrase match — with `cache_similarity` showing the cosine similarity score.
 
 #### `POST /api/stream`
-**Headers:** `Authorization: Bearer <token>`  
-Returns SSE stream of tokens. Each event: `data: {"token": "..."}` or `data: {"done": true, "sources": [...]}`
+**Headers:** `Authorization: Bearer <token>`
+Returns SSE stream of tokens. Each event: `data: {"token": "..."}` or final event `data: {"done": true, "sources": [...], "cached": true, "cache_type": "semantic", "cache_similarity": 0.94}`
+
+### Evaluation
+
+#### `POST /api/evaluate`
+**Headers:** `Authorization: Bearer <token>`
+```json
+{ "question": "What methodology was used?", "k": 4 }
+```
+**Response:**
+```json
+{
+  "question": "What methodology was used?",
+  "answer": "...",
+  "sources": ["report.pdf"],
+  "metrics": {
+    "precision_at_k": 0.75,
+    "mrr": 1.0,
+    "hit_rate": 1.0,
+    "answer_relevance": 0.9,
+    "context_precision": 0.85,
+    "overall_score": 0.87,
+    "details": { "relevant_chunks": 3, "total_chunks": 4 }
+  },
+  "interpretation": {
+    "overall": "Excellent",
+    "precision_at_k": "Good",
+    "answer_relevance": "Excellent",
+    "context_precision": "Excellent",
+    "summary": "Retrieved 3/4 relevant chunks. Overall pipeline quality: Excellent (87.0%)."
+  },
+  "latency_ms": 3120.5
+}
+```
+Runs an LLM-as-judge evaluation across all retrieved chunks — used to validate retrieval quality without manual labeling, and to compare hybrid retrieval against vector-only baselines.
 
 ### Health
 
@@ -277,12 +353,15 @@ Returns SSE stream of tokens. Each event: `data: {"token": "..."}` or `data: {"d
 | Metric | Baseline | With Optimizations |
 |--------|----------|--------------------|
 | Avg response latency | ~2.5s | **~0.3s** (cached) |
-| Repeated query latency | ~2.5s | **~4ms** (Redis hit) |
-| Repeated query cost | Full LLM call | Zero — Redis hit |
+| Repeated query latency (exact) | ~2.5s | **~4ms** (Redis hit) |
+| Repeated query latency (paraphrased) | ~2.5s | **~4ms** (semantic cache hit) |
+| Repeated query cost | Full LLM call | Zero — cache hit |
 | Retrieval method | Vector-only | Hybrid FAISS + BM25 |
+| Retrieval quality validation | Manual / none | Automated — RAGAS-style metrics |
 | Multi-document | ❌ | ✅ |
 | Streaming | ❌ | ✅ Token-by-token |
 | Auth | ❌ | ✅ JWT per-user |
+| Caching | ❌ | ✅ Exact + Semantic |
 
 ---
 
@@ -292,20 +371,42 @@ Returns SSE stream of tokens. Each event: `data: {"token": "..."}` or `data: {"d
 User Question
      │
      ▼
-Generate Query Embedding
+Check Semantic Cache (exact → semantic, cosine sim ≥ 0.92)
      │
-     ├──► FAISS Search (semantic) ──┐
-     │                              ├──► Reciprocal Rank Fusion
-     └──► BM25 Search (keyword)  ───┘
-                                         │
-                                         ▼
-                                 Top-K Chunks (context)
-                                         │
-                                         ▼
-                              Prompt = context + question
-                                         │
-                                         ▼
-                  OpenRouter → LLM → Streamed token-by-token → UI
+     ├── HIT  ──► Stream cached answer (≈4ms)
+     │
+     └── MISS ──► Generate Query Embedding
+                       │
+                       ├──► FAISS Search (semantic) ──┐
+                       │                              ├──► Reciprocal Rank Fusion
+                       └──► BM25 Search (keyword)  ───┘
+                                                          │
+                                                          ▼
+                                                  Top-K Chunks (context)
+                                                          │
+                                                          ▼
+                                       Prompt = context + question
+                                                          │
+                                                          ▼
+                            OpenRouter → LLM → Streamed token-by-token → UI
+                                                          │
+                                                          ▼
+                                          Cache answer (exact + semantic index)
+```
+
+### Evaluation Flow (`/api/evaluate`)
+
+```
+Question ──► Hybrid Retrieval (Top-K chunks) ──► LLM generates answer
+                       │                                    │
+                       ▼                                    ▼
+        LLM-as-judge: relevant? (Y/N per chunk)   LLM-as-judge: relevance score (0-10)
+                       │                                    │
+          Precision@K, MRR, Hit Rate              Answer Relevance, Context Precision
+                       │                                    │
+                       └──────────────┬─────────────────────┘
+                                       ▼
+                         Weighted Overall Score + Grade
 ```
 
 ---
