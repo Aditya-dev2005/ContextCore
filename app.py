@@ -74,7 +74,7 @@ st.markdown("""
     .msg-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #9B93FF); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; box-shadow: 0 0 12px rgba(108,99,255,0.3); }
     .bubble-user { background: var(--accent); color: white; border-radius: 18px 18px 4px 18px; padding: 0.7rem 1.1rem; max-width: 72%; font-size: 0.875rem; line-height: 1.55; box-shadow: 0 4px 20px rgba(108,99,255,0.25); }
     .bubble-ai { background: var(--surface2); border: 1px solid var(--border-bright); color: var(--text); border-radius: 4px 18px 18px 18px; padding: 0.85rem 1.1rem; max-width: 72%; font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap; }
-    .msg-meta { font-size: 0.68rem; color: var(--text-faint); margin-top: 0.35rem; display: flex; gap: 0.8rem; }
+    .msg-meta { font-size: 0.68rem; color: var(--text-faint); margin-top: 0.35rem; display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; }
     .streaming-cursor::after { content: '▋'; animation: blink 0.7s infinite; color: var(--accent); margin-left: 2px; }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
     .hist-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 0.4rem; }
@@ -88,6 +88,48 @@ st.markdown("""
     .panel-heading { font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 600; color: var(--text); letter-spacing: 0.01em; margin-bottom: 1rem; }
     .stSpinner > div { border-top-color: var(--accent) !important; }
     .stAlert { background: var(--surface2) !important; border-radius: 8px !important; }
+
+    /* ── NEW: cache badges ──────────────────────────────────────────── */
+    .cache-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 0.65rem; font-weight: 600;
+        padding: 0.12rem 0.5rem; border-radius: 20px;
+        font-family: 'DM Sans', sans-serif;
+    }
+    .cache-badge-exact { background: rgba(78,205,196,0.15); color: var(--accent3); border: 1px solid rgba(78,205,196,0.3); }
+    .cache-badge-semantic { background: rgba(108,99,255,0.15); color: var(--accent); border: 1px solid rgba(108,99,255,0.3); }
+    .cache-badge-live { background: rgba(122,122,154,0.12); color: var(--text-faint); border: 1px solid var(--border-bright); }
+
+    /* ── NEW: evaluate panel ────────────────────────────────────────── */
+    .eval-card {
+        background: var(--surface2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 1.1rem; margin-top: 0.75rem;
+    }
+    .eval-metric-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.45rem 0; border-bottom: 1px solid var(--border);
+        font-size: 0.8rem;
+    }
+    .eval-metric-row:last-child { border-bottom: none; }
+    .eval-metric-label { color: var(--text-dim); }
+    .eval-metric-value { font-family: 'Syne', sans-serif; font-weight: 700; color: var(--text); }
+    .eval-grade {
+        font-size: 0.62rem; font-weight: 600; padding: 0.1rem 0.5rem;
+        border-radius: 12px; margin-left: 0.5rem;
+    }
+    .grade-excellent { background: rgba(78,205,196,0.18); color: var(--accent3); }
+    .grade-good { background: rgba(108,99,255,0.18); color: var(--accent); }
+    .grade-fair { background: rgba(255,193,7,0.18); color: #FFC107; }
+    .grade-poor { background: rgba(255,107,107,0.18); color: var(--accent2); }
+    .eval-overall {
+        text-align: center; padding: 1rem 0 0.5rem;
+        font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800;
+        color: var(--accent);
+    }
+    .eval-summary {
+        font-size: 0.78rem; color: var(--text-dim); line-height: 1.6;
+        text-align: center; margin-top: 0.3rem; padding: 0 0.5rem 0.3rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -95,7 +137,8 @@ st.markdown("""
 for key, val in {
     'chat_history': [], 'uploaded_pdfs': [], 'upload_error': None,
     'metrics': {'total_questions': 0, 'avg_latency': 0},
-    'pending_question': None, 'token': None, 'username': None, 'auth_mode': 'login'
+    'pending_question': None, 'token': None, 'username': None, 'auth_mode': 'login',
+    'eval_result': None, 'eval_loading': False, 'eval_error': None
 }.items():
     if key not in st.session_state:
         st.session_state[key] = val
@@ -108,12 +151,10 @@ def auth_headers():
 
 # ── AUTH WALL ─────────────────────────────────────────────────────────────────
 if not st.session_state.token:
-    # Use columns to center the auth form properly across full width
     col_l, col_mid, col_r = st.columns([1, 1.2, 1])
     with col_mid:
         mode = st.session_state.auth_mode
 
-        # 🔷 Logo box (clean header container)
         st.markdown("""
         <div style="
             background:var(--surface2);
@@ -138,7 +179,6 @@ if not st.session_state.token:
         </div>
         """, unsafe_allow_html=True)
 
-        # 🔽 Subtitle below the box
         st.markdown(f"""
         <div style="
             font-size:0.9rem;
@@ -185,6 +225,18 @@ if not st.session_state.token:
 
 # ── MAIN APP ──────────────────────────────────────────────────────────────────
 
+def render_cache_badge(cache_type, similarity=None):
+    """NEW: renders a small pill showing whether this answer was an exact-cache hit,
+    a semantic-cache hit (paraphrase match), or a live (non-cached) LLM call."""
+    if cache_type == "exact":
+        return '<span class="cache-badge cache-badge-exact">⚡ exact cache</span>'
+    elif cache_type == "semantic":
+        sim_txt = f" {round(similarity*100)}%" if similarity else ""
+        return f'<span class="cache-badge cache-badge-semantic">🧠 semantic cache{sim_txt}</span>'
+    else:
+        return '<span class="cache-badge cache-badge-live">○ live answer</span>'
+
+
 with st.sidebar:
     st.markdown('<div class="wordmark"><div class="wordmark-dot"></div> ContextCore</div>', unsafe_allow_html=True)
     st.markdown('<div class="wordmark-tag">RAG Document Intelligence</div>', unsafe_allow_html=True)
@@ -197,6 +249,7 @@ with st.sidebar:
             for k in ['token', 'username', 'chat_history', 'uploaded_pdfs']:
                 st.session_state[k] = [] if k in ['chat_history', 'uploaded_pdfs'] else None
             st.session_state.metrics = {'total_questions': 0, 'avg_latency': 0}
+            st.session_state.eval_result = None
             st.rerun()
 
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
@@ -334,7 +387,9 @@ with left:
             if msg['role'] == 'user':
                 st.markdown(f'<div class="msg-row-user"><div><div class="bubble-user">{safe_content}</div></div></div>', unsafe_allow_html=True)
             else:
-                st.markdown(f'<div class="msg-row-ai"><div class="msg-avatar">◈</div><div><div class="bubble-ai">{safe_content}</div><div class="msg-meta"><span>⚡ {msg.get("latency",0)} ms</span><span>📄 {html.escape(msg.get("sources",""))}</span></div></div></div>', unsafe_allow_html=True)
+                # NEW: cache badge rendered alongside latency + sources
+                cache_badge_html = render_cache_badge(msg.get("cache_type"), msg.get("cache_similarity"))
+                st.markdown(f'<div class="msg-row-ai"><div class="msg-avatar">◈</div><div><div class="bubble-ai">{safe_content}</div><div class="msg-meta"><span>⚡ {msg.get("latency",0)} ms</span><span>📄 {html.escape(msg.get("sources",""))}</span>{cache_badge_html}</div></div></div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     pending = st.session_state.pending_question
@@ -360,6 +415,8 @@ with left:
         t0 = time.time()
         full_answer = ""
         sources = []
+        cache_type = None          # NEW
+        cache_similarity = None    # NEW
 
         try:
             for chunk in stream_response(active_question, history):
@@ -370,12 +427,22 @@ with left:
                     safe_so_far = html.escape(full_answer)
                     stream_placeholder.markdown(f'<div class="msg-row-ai"><div class="msg-avatar">◈</div><div><div class="bubble-ai streaming-cursor">{safe_so_far}</div></div></div>', unsafe_allow_html=True)
                 if chunk.get("done"):
-                    sources = chunk.get("sources", []); break
+                    sources = chunk.get("sources", [])
+                    # NEW: capture cache metadata from the stream's final event
+                    if chunk.get("cached"):
+                        cache_type = chunk.get("cache_type", "exact")
+                        cache_similarity = chunk.get("cache_similarity")
+                    break
         except Exception as e:
             st.error(str(e))
 
         latency = int((time.time() - t0) * 1000)
-        st.session_state.chat_history.append({'role': 'assistant', 'content': full_answer, 'latency': latency, 'sources': ', '.join(sources)[:50] if sources else ''})
+        st.session_state.chat_history.append({
+            'role': 'assistant', 'content': full_answer, 'latency': latency,
+            'sources': ', '.join(sources)[:50] if sources else '',
+            'cache_type': cache_type,                 # NEW
+            'cache_similarity': cache_similarity       # NEW
+        })
         n = st.session_state.metrics['total_questions']
         st.session_state.metrics['avg_latency'] = (st.session_state.metrics['avg_latency'] * n + latency) / (n + 1)
         st.session_state.metrics['total_questions'] += 1
@@ -401,4 +468,80 @@ with right:
             st.session_state["pending_question"] = q
             st.rerun()
 
-    st.markdown('<div style="margin-top:2rem;font-size:0.68rem;color:var(--text-faint);line-height:1.6;">ContextCore v2.0<br>FastAPI · LangChain · FAISS · JWT</div>', unsafe_allow_html=True)
+    # ── NEW: RAGAS Evaluation panel ────────────────────────────────────────
+    st.markdown('<div style="margin-top:1.8rem"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-heading">📊 RAG Evaluation</div>', unsafe_allow_html=True)
+
+    eval_question = st.text_input(
+        "Eval question",
+        placeholder="Question to evaluate...",
+        label_visibility="collapsed",
+        key="eval_question_input",
+        disabled=not docs_ready
+    )
+    run_eval = st.button("Run RAGAS Evaluation", use_container_width=True, disabled=not docs_ready or not eval_question)
+
+    if run_eval and eval_question:
+        st.session_state.eval_error = None
+        with st.spinner("Scoring retrieval + answer quality..."):
+            try:
+                r = requests.post(
+                    f"{API_BASE_URL}/api/evaluate",
+                    json={"question": eval_question, "k": 4},
+                    headers=auth_headers(),
+                    timeout=60
+                )
+                if r.status_code == 200:
+                    st.session_state.eval_result = r.json()
+                else:
+                    st.session_state.eval_error = r.json().get("detail", "Evaluation failed")
+                    st.session_state.eval_result = None
+            except Exception as e:
+                st.session_state.eval_error = str(e)
+                st.session_state.eval_result = None
+
+    if st.session_state.eval_error:
+        st.markdown(f'<div class="doc-card" style="border-left-color:var(--accent2)">{html.escape(st.session_state.eval_error)}</div>', unsafe_allow_html=True)
+
+    if st.session_state.eval_result:
+        res = st.session_state.eval_result
+        m = res["metrics"]
+        interp = res["interpretation"]
+
+        def grade_class(g):
+            return {"Excellent": "grade-excellent", "Good": "grade-good",
+                    "Fair": "grade-fair", "Poor": "grade-poor"}.get(g, "grade-fair")
+
+        st.markdown(f"""
+        <div class="eval-card">
+            <div class="eval-overall">{round(m['overall_score']*100)}%</div>
+            <div class="eval-summary">{html.escape(interp['summary'])}</div>
+            <div style="height:0.6rem"></div>
+            <div class="eval-metric-row">
+                <span class="eval-metric-label">Precision@K</span>
+                <span><span class="eval-metric-value">{m['precision_at_k']:.2f}</span><span class="eval-grade {grade_class(interp['precision_at_k'])}">{interp['precision_at_k']}</span></span>
+            </div>
+            <div class="eval-metric-row">
+                <span class="eval-metric-label">MRR</span>
+                <span class="eval-metric-value">{m['mrr']:.2f}</span>
+            </div>
+            <div class="eval-metric-row">
+                <span class="eval-metric-label">Hit Rate</span>
+                <span class="eval-metric-value">{m['hit_rate']:.2f}</span>
+            </div>
+            <div class="eval-metric-row">
+                <span class="eval-metric-label">Answer Relevance</span>
+                <span><span class="eval-metric-value">{m['answer_relevance']:.2f}</span><span class="eval-grade {grade_class(interp['answer_relevance'])}">{interp['answer_relevance']}</span></span>
+            </div>
+            <div class="eval-metric-row">
+                <span class="eval-metric-label">Context Precision</span>
+                <span><span class="eval-metric-value">{m['context_precision']:.2f}</span><span class="eval-grade {grade_class(interp['context_precision'])}">{interp['context_precision']}</span></span>
+            </div>
+            <div class="eval-metric-row">
+                <span class="eval-metric-label">Latency</span>
+                <span class="eval-metric-value">{res['latency_ms']:.0f}ms</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown('<div style="margin-top:2rem;font-size:0.68rem;color:var(--text-faint);line-height:1.6;">ContextCore v2.0<br>FastAPI · LangChain · FAISS · JWT · Semantic Cache · RAGAS</div>', unsafe_allow_html=True)
