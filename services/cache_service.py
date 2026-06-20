@@ -15,8 +15,8 @@ class CacheService:
                 password=Config.REDIS_PASSWORD,
                 db=Config.REDIS_DB,
                 decode_responses=True,
-                ssl=False,  # localhost ke liye SSL nahi chahiye
-                socket_connect_timeout=2,  # 2 sec mein connect nahi hua toh skip
+                ssl=False,
+                socket_connect_timeout=2,
                 socket_timeout=2
             )
             self.client.ping()

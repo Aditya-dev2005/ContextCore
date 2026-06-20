@@ -3,15 +3,18 @@ from fastapi.responses import StreamingResponse
 from models.schemas import QuestionRequest
 from services.vector_store import get_vectorstore, similarity_search
 from services.cache_service import CacheService
+from services.semantic_cache import SemanticCache
 from config import Config
 from langchain_openai import ChatOpenAI
 from routes.auth import verify_token
 import json
-import time
 from typing import Optional
 
 router = APIRouter()
-cache = CacheService()
+
+_cache_service = CacheService()
+semantic_cache = SemanticCache(redis_client=_cache_service.client, ttl=Config.REDIS_TTL)
+
 
 def get_user_from_token(authorization: Optional[str]) -> str:
     if authorization and authorization.startswith("Bearer "):
@@ -20,6 +23,7 @@ def get_user_from_token(authorization: Optional[str]) -> str:
         if username:
             return username
     return "__default__"
+
 
 def build_prompt(context: str, question: str, history: list) -> str:
     history_text = ""
@@ -54,18 +58,19 @@ Question:
 
 Answer:"""
 
+
 @router.post("/stream")
 async def stream_answer(
     request: QuestionRequest,
     authorization: Optional[str] = Header(None)
 ):
     user = get_user_from_token(authorization)
-    cache_key = f"{user}:{request.question}"
 
-    # Cache hit — stream cached answer
-    cached = cache.get_cached_response(cache_key)
+    cached = semantic_cache.get(user, request.question)
     if cached:
-        print(f"⚡ Cache HIT (stream) user={user}")
+        cache_type = cached.get("_cache_type", "exact")
+        similarity = cached.get("_similarity")
+        print(f"⚡ Cache HIT ({cache_type}, stream) user={user} sim={similarity}")
         answer = cached["answer"]
         sources = cached.get("sources", [])
 
@@ -74,11 +79,10 @@ async def stream_answer(
             for i, word in enumerate(words):
                 chunk = word if i == 0 else " " + word
                 yield f"data: {json.dumps({'token': chunk})}\n\n"
-            yield f"data: {json.dumps({'done': True, 'sources': sources, 'cached': True})}\n\n"
+            yield f"data: {json.dumps({'done': True, 'sources': sources, 'cached': True, 'cache_type': cache_type, 'cache_similarity': similarity})}\n\n"
 
         return StreamingResponse(cached_stream(), media_type="text/event-stream")
 
-    # Check vectorstore
     vectorstore = get_vectorstore(user=user)
     if vectorstore is None:
         raise HTTPException(status_code=400, detail="No documents indexed yet. Please upload PDFs first.")
@@ -111,7 +115,7 @@ async def stream_answer(
                 if token:
                     full_answer += token
                     yield f"data: {json.dumps({'token': token})}\n\n"
-            cache.cache_response(cache_key, {"answer": full_answer, "sources": sources})
+            semantic_cache.set(user, request.question, {"answer": full_answer, "sources": sources})
             yield f"data: {json.dumps({'done': True, 'sources': sources, 'cached': False})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"

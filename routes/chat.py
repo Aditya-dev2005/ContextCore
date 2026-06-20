@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Header
 from models.schemas import QuestionRequest, QuestionResponse
 from services.vector_store import get_vectorstore, similarity_search
 from services.cache_service import CacheService
+from services.semantic_cache import SemanticCache
 from config import Config
 from langchain_openai import ChatOpenAI
 from routes.auth import verify_token
@@ -17,7 +18,9 @@ llm = ChatOpenAI(
     base_url=Config.OPENROUTER_BASE_URL
 )
 
-cache = CacheService()
+_cache_service = CacheService()
+semantic_cache = SemanticCache(redis_client=_cache_service.client, ttl=Config.REDIS_TTL)
+
 
 def get_user_from_token(authorization: Optional[str]) -> str:
     if authorization and authorization.startswith("Bearer "):
@@ -26,6 +29,7 @@ def get_user_from_token(authorization: Optional[str]) -> str:
         if username:
             return username
     return "__default__"
+
 
 def build_prompt(context: str, question: str, history: list) -> str:
     history_text = ""
@@ -63,6 +67,7 @@ Question:
 
 Answer:"""
 
+
 @router.post("/ask", response_model=QuestionResponse)
 async def ask_question(
     request: QuestionRequest,
@@ -72,15 +77,19 @@ async def ask_question(
     user = get_user_from_token(authorization)
 
     try:
-        cache_key = f"{user}:{request.question}"
-        cached_response = cache.get_cached_response(cache_key)
+        # Semantic cache lookup — catches exact AND paraphrased repeat questions
+        cached_response = semantic_cache.get(user, request.question)
         if cached_response:
-            print(f"⚡ Cache HIT for user={user}")
+            cache_type = cached_response.get("_cache_type", "exact")
+            similarity = cached_response.get("_similarity")
+            print(f"⚡ Cache HIT ({cache_type}) user={user} sim={similarity}")
             latency_ms = (time.time() - start_time) * 1000
             return QuestionResponse(
                 answer=cached_response["answer"],
                 sources=cached_response.get("sources", []),
-                latency_ms=round(latency_ms, 2)
+                latency_ms=round(latency_ms, 2),
+                cache_type=cache_type,
+                cache_similarity=similarity
             )
 
         vectorstore = get_vectorstore(user=user)
@@ -99,10 +108,16 @@ async def ask_question(
             response = llm.invoke(prompt)
             answer = response.content
 
-        cache.cache_response(cache_key, {"answer": answer, "sources": sources})
+        semantic_cache.set(user, request.question, {"answer": answer, "sources": sources})
         latency_ms = (time.time() - start_time) * 1000
 
-        return QuestionResponse(answer=answer, sources=sources, latency_ms=round(latency_ms, 2))
+        return QuestionResponse(
+            answer=answer,
+            sources=sources,
+            latency_ms=round(latency_ms, 2),
+            cache_type=None,
+            cache_similarity=None
+        )
 
     except HTTPException:
         raise

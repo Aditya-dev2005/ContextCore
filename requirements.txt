@@ -11,3 +11,5 @@ openai
 python-multipart
 redis
 PyJWT
+sentence-transformers
+numpy

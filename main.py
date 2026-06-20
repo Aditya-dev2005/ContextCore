@@ -4,13 +4,14 @@ from routes.upload import router as upload_router
 from routes.chat import router as chat_router
 from routes.stream import router as stream_router
 from routes.auth import router as auth_router
+from routes.evaluate import router as evaluate_router
 import uvicorn
 
 # Create FastAPI app
 app = FastAPI(
     title="Enterprise RAG Platform",
     description="Production-ready RAG system for PDF Q&A",
-    version="1.0.0"
+    version="2.0.0"
 )
 
 # Configure CORS for Flutter frontend
@@ -27,12 +28,13 @@ app.include_router(upload_router, prefix="/api", tags=["upload"])
 app.include_router(chat_router, prefix="/api", tags=["chat"])
 app.include_router(stream_router, prefix="/api", tags=["stream"])
 app.include_router(auth_router, prefix="/api", tags=["auth"])
+app.include_router(evaluate_router, prefix="/api", tags=["evaluate"])
 
 @app.get("/")
 async def root():
     return {
         "message": "Enterprise RAG Platform API",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "docs": "/docs"
     }
 
