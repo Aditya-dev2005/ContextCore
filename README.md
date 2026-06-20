@@ -16,8 +16,8 @@
 
 ## Live Demo
 
-- **Frontend:** https://contextcore-y7kzygpxf4wtqbhrch9jak.streamlit.app/
-- **Backend API:** https://contextcore-production-bb70.up.railway.app/
+- **Frontend:** [https://contextcore-y7kzygpxf4wtqbhrch9jak.streamlit.app/](https://contextcore-production-5e9c.up.railway.app/)
+- **Backend API:** contextcore-production-673f.up.railway.app
 - **API Docs:** https://contextcore-production-bb70.up.railway.app/docs
 
 ---
