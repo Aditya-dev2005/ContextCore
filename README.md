@@ -246,7 +246,7 @@ API_BASE_URL=http://127.0.0.1:8000
 
 ```bash
 # Terminal 1 — FastAPI backend
-uvicorn main:app --reload --port 8001
+uvicorn main:app --reload --port 8000
 
 # Terminal 2 — Streamlit frontend
 streamlit run app.py
